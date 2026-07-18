@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import type { Application, ContainerStatus } from "../types";
 
 export default function ApplicationDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const appId = Number(id);
   const [application, setApplication] = useState<Application | null>(null);
   const [compose, setCompose] = useState("");
@@ -50,6 +51,29 @@ export default function ApplicationDetail() {
     }
   };
 
+  const cloneApp = async () => {
+    if (!application) return;
+    const newName = prompt("Nhập tên cho application mới:", `${application.name}-copy`);
+    if (!newName) return;
+    const cleanName = newName.trim().toLowerCase().replace(/\s+/g, "-");
+    if (!cleanName) {
+      alert("Tên không hợp lệ");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const cloned = await api.cloneApplication(appId, { name: cleanName });
+      setMessage("Clone thành công!");
+      navigate(`/applications/${cloned.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Clone thất bại");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (!application) {
     return <div className="card">Đang tải...</div>;
   }
@@ -64,6 +88,7 @@ export default function ApplicationDetail() {
           <p>{application.description || "Application Docker Compose"}</p>
         </div>
         <div className="actions">
+          <button className="button secondary" disabled={busy} onClick={cloneApp}>Clone</button>
           <button className="button secondary" disabled={busy} onClick={() => action("stop")}>Stop</button>
           <button className="button primary" disabled={busy} onClick={() => action("deploy")}>
             {busy ? "Đang xử lý..." : "Deploy"}

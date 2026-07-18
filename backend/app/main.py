@@ -20,10 +20,13 @@ from .compose_service import (
 from .database import Base, engine, get_db
 from .models import Application, Service
 from .schemas import ApplicationCreate, ApplicationRead
+from .template_routes import template_router
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="ComposeHub API", version="0.1.0")
+app.include_router(template_router)
+
 
 app.add_middleware(
     CORSMiddleware,

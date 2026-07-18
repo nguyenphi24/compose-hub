@@ -35,4 +35,27 @@ export const api = {
     request<{ containers: ContainerStatus[] }>(`/api/applications/${id}/status`),
   logs: (id: number) =>
     request<{ logs: string }>(`/api/applications/${id}/logs`),
+  templates: () =>
+    request<any[]>("/api/templates"),
+  previewTemplate: (payload: { template_id: string; app_name: string; variables: Record<string, any> }) =>
+    request<{ compose: string }>("/api/templates/preview", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  createFromTemplate: (payload: {
+    template_id: string;
+    name: string;
+    environment: string;
+    description: string;
+    variables: Record<string, any>;
+  }) =>
+    request<Application>("/api/applications/from-template", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  cloneApplication: (id: number, payload: { name: string }) =>
+    request<Application>(`/api/applications/${id}/clone`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 };
