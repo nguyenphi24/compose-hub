@@ -5,7 +5,12 @@ from app.compose_service import build_compose
 from app.database import Base
 from app.doctor_service import inspect_compose
 from app.models import Application, Service
-from app.release_service import create_revision, rollback_to_revision
+from app.release_service import (
+    DeploymentInProgressError,
+    create_revision,
+    deployment_lock,
+    rollback_to_revision,
+)
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
@@ -97,3 +102,16 @@ def test_rollback_uses_saved_compose_snapshot():
         assert rollback.status == "success"
         assert rollback.target_revision_id == target.id
         assert application.active_compose_yaml == target.compose_yaml
+
+
+def test_deployment_lock_rejects_a_second_mutating_command():
+    with deployment_lock(987654):
+        try:
+            with deployment_lock(987654):
+                pass
+        except DeploymentInProgressError:
+            blocked = True
+        else:
+            blocked = False
+
+    assert blocked is True
