@@ -1,4 +1,4 @@
-.PHONY: dev-backend dev-frontend up down
+.PHONY: dev-backend dev-frontend up down test
 
 dev-backend:
 	cd backend && uvicorn app.main:app --reload --port 8000
@@ -11,3 +11,6 @@ up:
 
 down:
 	docker compose down
+
+test:
+	cd backend && .venv/bin/python -m pytest -q

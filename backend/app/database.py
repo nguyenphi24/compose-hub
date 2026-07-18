@@ -1,12 +1,17 @@
+import os
 from pathlib import Path
 
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+DATA_DIR = Path(
+    os.environ.get("COMPOSEHUB_DATA_DIR", Path(__file__).resolve().parents[2] / "data")
+)
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-DATABASE_URL = f"sqlite:///{DATA_DIR / 'composehub.db'}"
+DATABASE_URL = os.environ.get(
+    "COMPOSEHUB_DATABASE_URL", f"sqlite:///{DATA_DIR / 'composehub.db'}"
+)
 
 engine = create_engine(
     DATABASE_URL,

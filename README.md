@@ -71,6 +71,18 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
+### Chạy test backend
+
+Từ thư mục gốc của repository:
+
+```bash
+python -m venv backend/.venv
+backend/.venv/bin/pip install -r backend/requirements-dev.txt
+make test
+```
+
+Test tự dùng SQLite và thư mục Compose tạm thời; không chạm vào `data/` hay cần Docker daemon.
+
 ### Frontend
 
 ```bash

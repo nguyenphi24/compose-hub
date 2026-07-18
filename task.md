@@ -40,20 +40,20 @@ Các tính năng Safe Release và Blueprint hiện có là phần nâng cấp c�
 
 ### 4. Test suite chạy được bằng một lệnh
 
-- [ ] Thêm `backend/requirements-dev.txt` gồm `pytest` và `httpx`.
-- [ ] Thêm lệnh test vào `Makefile` hoặc README: `make test` / `python -m pytest`.
-- [ ] Tách test database sang SQLite tạm thời, không ghi vào `data/composehub.db`.
-- [ ] Đảm bảo test không cần Docker daemon thật; mock `run_compose` và Docker client.
+- [x] Thêm `backend/requirements-dev.txt` gồm `pytest` và `httpx`.
+- [x] Thêm lệnh `make test` và hướng dẫn trong README.
+- [x] Tách test database sang SQLite tạm thời, không ghi vào `data/composehub.db`.
+- [x] Đảm bảo test không cần Docker daemon thật; mock `run_compose` và Docker client.
 
 **Done khi:** cài dependencies theo tài liệu rồi chạy toàn bộ backend tests thành công bằng một lệnh.
 
 ### 5. Bổ sung test API Safe Release
 
-- [ ] Deploy thành công tạo revision `success` và snapshot Compose.
-- [ ] Doctor có Critical tạo revision `blocked` và API trả 422.
-- [ ] Lỗi Docker tạo revision `failed` với output lỗi.
-- [ ] Rollback chỉ nhận revision `success` của đúng application.
-- [ ] Hai request Deploy/Rollback đồng thời: request sau nhận 409 thay vì Docker container-name conflict.
+- [x] Deploy thành công tạo revision `success` và snapshot Compose.
+- [x] Doctor có Critical tạo revision `blocked` và API trả 422.
+- [x] Lỗi Docker tạo revision `failed` với output lỗi.
+- [x] Rollback chỉ nhận revision `success` của đúng application.
+- [x] Hai request Deploy/Rollback đồng thời: request sau nhận 409 thay vì Docker container-name conflict.
 
 **Done khi:** các state `blocked`, `failed`, `success` và concurrency lock đều có test API.
 
