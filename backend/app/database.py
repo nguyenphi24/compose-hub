@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
@@ -27,3 +27,20 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def initialize_database() -> None:
+    """Create new tables and apply the one lightweight SQLite migration we need.
+
+    The MVP intentionally does not depend on a migration framework. Existing
+    local databases need this additive migration because ``create_all`` never
+    adds a column to a table it already created.
+    """
+
+    Base.metadata.create_all(bind=engine)
+    columns = {column["name"] for column in inspect(engine).get_columns("applications")}
+    if "active_compose_yaml" not in columns:
+        with engine.begin() as connection:
+            connection.execute(
+                text("ALTER TABLE applications ADD COLUMN active_compose_yaml TEXT")
+            )

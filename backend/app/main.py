@@ -17,11 +17,14 @@ from .compose_service import (
     server_info,
     write_compose,
 )
-from .database import Base, engine, get_db
+from .database import get_db, initialize_database
+from .doctor_service import inspect_application
 from .models import Application, Service
+from .release_service import create_revision, deploy_with_revision, serialize_revision
+from .safety_routes import router as safety_router
 from .schemas import ApplicationCreate, ApplicationRead
 
-Base.metadata.create_all(bind=engine)
+initialize_database()
 
 app = FastAPI(title="ComposeHub API", version="0.1.0")
 
@@ -32,6 +35,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(safety_router)
 
 
 @app.get("/api/health")
@@ -113,22 +117,28 @@ def get_compose(application_id: int, db: Session = Depends(get_db)):
 @app.post("/api/applications/{application_id}/deploy")
 def deploy_application(application_id: int, db: Session = Depends(get_db)):
     application = get_application_or_404(application_id, db)
-
-    for service in application.services:
-        if service.host_port and not port_is_available(service.host_port):
-            current = application_status(application)
-            already_owned = any(
-                container.get("status") in {"running", "created", "restarting"} for container in current
-            )
-            if not already_owned:
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Port {service.host_port} đang được sử dụng.",
-                )
-
+    report = inspect_application(application)
+    if not report.can_deploy:
+        create_revision(
+            db,
+            application,
+            action="deploy",
+            status="blocked",
+            compose_yaml=compose_text(application),
+            doctor_report=report,
+        )
+        db.commit()
+        raise HTTPException(
+            status_code=422,
+            detail="Deploy bị chặn bởi Compose Doctor. Hãy xử lý các lỗi Critical trước.",
+        )
     try:
-        output = run_compose(application, ["up", "-d"])
-        return {"status": "deployed", "output": output}
+        revision, output = deploy_with_revision(db, application, report)
+        return {
+            "status": "deployed",
+            "output": output,
+            "revision": serialize_revision(revision).model_dump(mode="json"),
+        }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

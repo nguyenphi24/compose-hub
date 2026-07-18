@@ -65,10 +65,27 @@ def build_compose(application: Application) -> dict[str, Any]:
     return result
 
 
+def current_compose(application: Application) -> dict[str, Any]:
+    """Return the configuration currently selected for the application.
+
+    A rollback selects a revision snapshot as the active Compose source. This
+    keeps subsequent stop/status actions aligned with the version that is
+    actually running instead of reconstructing a newer configuration from UI
+    fields.
+    """
+
+    if application.active_compose_yaml:
+        loaded = yaml.safe_load(application.active_compose_yaml)
+        if not isinstance(loaded, dict):
+            raise ValueError("Compose snapshot không hợp lệ.")
+        return loaded
+    return build_compose(application)
+
+
 def write_compose(application: Application) -> Path:
     path = get_app_dir(application) / "compose.yaml"
     path.write_text(
-        yaml.safe_dump(build_compose(application), sort_keys=False, allow_unicode=True),
+        yaml.safe_dump(current_compose(application), sort_keys=False, allow_unicode=True),
         encoding="utf-8",
     )
     return path
@@ -76,7 +93,7 @@ def write_compose(application: Application) -> Path:
 
 def compose_text(application: Application) -> str:
     return yaml.safe_dump(
-        build_compose(application),
+        current_compose(application),
         sort_keys=False,
         allow_unicode=True,
     )
@@ -130,6 +147,36 @@ def port_is_available(port: int) -> bool:
                         return False
     except DockerException:
         pass
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.settimeout(0.2)
+        return sock.connect_ex(("127.0.0.1", port)) != 0
+
+
+def port_is_available_for_application(application: Application, port: int) -> bool:
+    """Check a host port while allowing a port already owned by this app."""
+
+    owned_port = False
+    try:
+        client = docker_client()
+        for container in client.containers.list(all=True):
+            if container.status not in {"running", "created", "restarting"}:
+                continue
+            ports = container.attrs.get("NetworkSettings", {}).get("Ports", {})
+            for bindings in ports.values():
+                for binding in bindings or []:
+                    if int(binding.get("HostPort", -1)) != port:
+                        continue
+                    labels = container.labels or {}
+                    if labels.get("com.composehub.application") == application.name:
+                        owned_port = True
+                    else:
+                        return False
+    except DockerException:
+        return port_is_available(port)
+
+    if owned_port:
+        return True
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.settimeout(0.2)
