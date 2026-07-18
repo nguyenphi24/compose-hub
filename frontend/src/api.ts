@@ -67,6 +67,15 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  updateApplication: (id: number, payload: unknown) =>
+    request<Application>(`/api/applications/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteApplication: (id: number) =>
+    fetch(`/api/applications/${id}`, { method: "DELETE" }).then((r) => {
+      if (!r.ok && r.status !== 204) throw new Error("Xóa application thất bại");
+    }),
   doctor: (id: number) =>
     request<DoctorReport>(`/api/applications/${id}/doctor`, { method: "POST" }),
   revisions: (id: number) =>

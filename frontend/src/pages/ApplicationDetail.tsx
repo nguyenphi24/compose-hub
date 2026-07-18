@@ -26,6 +26,8 @@ export default function ApplicationDetail() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -127,6 +129,19 @@ export default function ApplicationDetail() {
     }
   };
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    setError("");
+    try {
+      await api.deleteApplication(appId);
+      navigate("/");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Xóa application thất bại");
+      setDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
   if (!application) {
     return <div className="card">Đang tải...</div>;
   }
@@ -142,6 +157,20 @@ export default function ApplicationDetail() {
         </div>
         <div className="actions">
           <button className="button secondary" disabled={busy} onClick={cloneApp}>Clone</button>
+          <button
+            className="button secondary"
+            disabled={busy}
+            onClick={() => navigate(`/applications/${appId}/edit`)}
+          >
+            ✏ Chỉnh sửa
+          </button>
+          <button
+            className="button danger"
+            disabled={busy}
+            onClick={() => setShowDeleteModal(true)}
+          >
+            🗑 Xóa
+          </button>
           <button className="button secondary" disabled={busy} onClick={() => action("stop")}>Stop</button>
           <button className="button primary" disabled={busy || doctorLoading || Boolean(doctor && !doctor.can_deploy)} onClick={() => action("deploy")}>
             {busy ? "Đang xử lý..." : "Deploy"}
@@ -240,6 +269,37 @@ export default function ApplicationDetail() {
         onCancel={() => setRollbackTarget(null)}
         onConfirm={confirmRollback}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <p className="eyebrow">XÁC NHẬN XÓA</p>
+            <h2>Xóa "{application.name}"?</h2>
+            <p>
+              Thao tác này sẽ xóa toàn bộ metadata và file compose của application.
+              Các Docker volume sẽ <strong>không</strong> bị xóa tự động.
+              Hành động này không thể hoàn tác.
+            </p>
+            <div className="actions modal-actions">
+              <button
+                className="button secondary"
+                disabled={deleting}
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Hủy
+              </button>
+              <button
+                className="button danger"
+                disabled={deleting}
+                onClick={handleDelete}
+              >
+                {deleting ? "Đang xóa..." : "Xác nhận xóa"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

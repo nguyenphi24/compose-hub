@@ -45,6 +45,23 @@ class ApplicationCreate(BaseModel):
         return normalized
 
 
+class ApplicationUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    environment: str | None = None
+    description: str | None = None
+    services: list[ServiceCreate] | None = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_app_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        normalized = value.strip().lower().replace(" ", "-")
+        if not normalized:
+            raise ValueError("Tên application không hợp lệ")
+        return normalized
+
+
 class ServiceRead(ServiceCreate):
     id: int
 

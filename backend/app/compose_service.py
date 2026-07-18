@@ -217,3 +217,22 @@ def application_logs(application: Application, tail: int = 200) -> str:
         return "\n".join(sections) if sections else "Chưa có container nào."
     except DockerException as exc:
         raise RuntimeError(str(exc)) from exc
+
+
+def validate_ports_for_update(
+    application: Application,
+    new_services: list,
+) -> list[str]:
+    """Validate host ports for PATCH/update operations.
+    Returns list of error messages. Empty means OK.
+    """
+    errors = []
+    requested_ports = [s.host_port for s in new_services if s.host_port]
+    if len(requested_ports) != len(set(requested_ports)):
+        errors.append("Có host port bị trùng trong application.")
+        return errors
+    existing_ports = {svc.host_port for svc in application.services if svc.host_port}
+    for port in requested_ports:
+        if port not in existing_ports and not port_is_available(port):
+            errors.append(f"Port {port} đang được sử dụng trên Docker host.")
+    return errors
