@@ -20,7 +20,12 @@ from .compose_service import (
 from .database import get_db, initialize_database
 from .doctor_service import inspect_application
 from .models import Application, Service
-from .release_service import create_revision, deploy_with_revision, serialize_revision
+from .release_service import (
+    DeploymentInProgressError,
+    create_revision,
+    deploy_with_revision,
+    serialize_revision,
+)
 from .safety_routes import router as safety_router
 from .template_routes import template_router
 from .schemas import ApplicationCreate, ApplicationRead
@@ -141,6 +146,8 @@ def deploy_application(application_id: int, db: Session = Depends(get_db)):
             "output": output,
             "revision": serialize_revision(revision).model_dump(mode="json"),
         }
+    except DeploymentInProgressError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

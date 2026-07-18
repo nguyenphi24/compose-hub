@@ -7,7 +7,11 @@ from sqlalchemy.orm import Session
 from .database import get_db
 from .doctor_service import inspect_application
 from .models import Application, ReleaseRevision
-from .release_service import rollback_to_revision, serialize_revision
+from .release_service import (
+    DeploymentInProgressError,
+    rollback_to_revision,
+    serialize_revision,
+)
 from .schemas import DoctorReport, ReleaseRevisionRead
 
 router = APIRouter(tags=["safe-release"])
@@ -53,5 +57,7 @@ def rollback(application_id: int, revision_id: int, db: Session = Depends(get_db
     try:
         rollback_revision, _ = rollback_to_revision(db, application, target)
         return serialize_revision(rollback_revision)
+    except DeploymentInProgressError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
