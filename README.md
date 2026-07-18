@@ -2,16 +2,28 @@
 
 > Nền tảng mã nguồn mở giúp quản lý và triển khai ứng dụng Docker Compose bằng giao diện Web, giảm nhu cầu SSH trực tiếp vào máy chủ.
 
-## Mục tiêu MVP 8 giờ
+## Mục tiêu MVP 8 giờ — Safe Deploy
 
-Bản MVP tập trung vào **một Docker host** và một luồng hoàn chỉnh:
+Bản MVP tập trung vào **một Docker host** và một lời hứa rõ ràng: triển khai Docker Compose nhanh, biết rủi ro trước khi chạy, và có thể quay lại bản ổn định.
 
-1. Xem trạng thái Docker host.
-2. Tạo Application bằng giao diện.
-3. Khai báo các service, port, volume và biến môi trường.
-4. Sinh `compose.yaml`.
-5. Deploy / Stop Application.
-6. Xem trạng thái container và log.
+Luồng hoàn chỉnh:
+
+```text
+Chọn Blueprint / tạo Application
+→ xem Compose
+→ Compose Doctor kiểm tra rủi ro
+→ Deploy
+→ xem trạng thái + log
+→ xem release
+→ rollback khi cần
+```
+
+MVP gồm hai feature độc lập, mỗi feature do một developer sở hữu end-to-end:
+
+| Feature | Nội dung |
+|---|---|
+| **App Blueprint** | Template `Nginx`, `Postgres`, `n8n + Postgres`; form cấu hình; xem Compose; tạo hoặc clone Application. |
+| **Safe Release** | Compose Doctor; deploy snapshot; release timeline; rollback một chạm; trạng thái container và logs. |
 
 ComposeHub quản lý theo **Application**, không quản lý rời rạc từng container.
 
@@ -87,20 +99,30 @@ docker compose up --build
 
 > Backend được mount Docker socket để thao tác với Docker Engine của máy chủ. Chỉ sử dụng trong môi trường tin cậy.
 
+## Compose Doctor
+
+Trước khi deploy, ComposeHub phân loại cấu hình thành `Critical`, `Warning` và `Info`.
+
+- Port host đã bị chiếm.
+- Database bị publish ra Internet.
+- Container dùng `privileged` hoặc mount Docker socket.
+- Image dùng tag `latest`.
+- Database không có named volume.
+- Service thiếu restart policy hoặc healthcheck.
+- Danh sách service, port, network và volume sẽ được public/tạo mới.
+
+Doctor là kiểm tra tĩnh cho MVP; chỉ lỗi `Critical` mới chặn deploy.
+
 ## Luồng demo
 
-1. Mở Dashboard.
-2. Kiểm tra Docker host đang online.
-3. Chọn **Tạo Application**.
-4. Nhập tên application, ví dụ `demo-blog`.
-5. Thêm service:
-   - `web`: `nginx:alpine`, container port `80`, host port `8088`.
-6. Lưu application.
-7. Mở trang chi tiết.
-8. Xem `compose.yaml` đã được sinh.
-9. Bấm **Deploy**.
-10. Truy cập `http://localhost:8088`.
-11. Xem container và log ngay trong ComposeHub.
+1. Mở Dashboard và kiểm tra Docker host.
+2. Chọn blueprint `n8n + Postgres` hoặc tạo `Nginx`.
+3. Điền tên application và các biến bắt buộc.
+4. Xem `compose.yaml` được sinh.
+5. Chạy Compose Doctor và xử lý cảnh báo/critical.
+6. Bấm **Deploy**, sau đó truy cập ứng dụng.
+7. Xem container, logs và release timeline.
+8. Thay đổi một cấu hình, deploy revision mới rồi rollback về revision ổn định.
 
 ## API chính
 
@@ -116,10 +138,21 @@ docker compose up --build
 | POST | `/api/applications/{id}/stop` | Stop |
 | GET | `/api/applications/{id}/status` | Trạng thái container |
 | GET | `/api/applications/{id}/logs` | Log |
+| GET | `/api/templates` | Danh sách blueprint |
+| POST | `/api/applications/from-template` | Tạo Application từ blueprint |
+| POST | `/api/applications/{id}/clone` | Clone Application |
+| POST | `/api/applications/{id}/doctor` | Chạy kiểm tra Compose Doctor |
+| GET | `/api/applications/{id}/revisions` | Danh sách release/revision |
+| POST | `/api/applications/{id}/rollback/{revision_id}` | Rollback về revision đã lưu |
 
 ## Phân chia công việc trong 8 giờ
 
-Xem chi tiết tại [docs/PLAN_8_HOURS.md](docs/PLAN_8_HOURS.md).
+Không chia theo Backend/Frontend. Mỗi developer phụ trách trọn một feature gồm API, UI, test và demo:
+
+- **Dev01**: App Blueprint.
+- **Dev02**: Safe Release (Compose Doctor, release timeline và rollback).
+
+Chi tiết tại [docs/PLAN_8_HOURS.md](docs/PLAN_8_HOURS.md).
 
 ## Scope không làm trong MVP
 
@@ -131,7 +164,7 @@ Xem chi tiết tại [docs/PLAN_8_HOURS.md](docs/PLAN_8_HOURS.md).
 - Backup/restore
 - Monitoring lịch sử
 - Secret vault
-- Rollback revision
+- Git deploy / webhook
 
 Các phần này được giữ trong roadmap, nhưng không nên đưa vào demo 8 giờ.
 
