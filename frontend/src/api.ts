@@ -1,4 +1,10 @@
-import type { Application, ServerInfo, ContainerStatus } from "./types";
+import type {
+  Application,
+  ServerInfo,
+  ContainerStatus,
+  DoctorReport,
+  ReleaseRevision,
+} from "./types";
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -7,7 +13,10 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   });
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.detail || "Có lỗi xảy ra");
+    const detail = data.detail;
+    throw new Error(
+      typeof detail === "string" ? detail : detail?.message || "Có lỗi xảy ra"
+    );
   }
   return data;
 }
@@ -24,7 +33,7 @@ export const api = {
   compose: (id: number) =>
     request<{ compose: string }>(`/api/applications/${id}/compose`),
   deploy: (id: number) =>
-    request<{ status: string; output: string }>(`/api/applications/${id}/deploy`, {
+    request<{ status: string; output: string; revision?: ReleaseRevision }>(`/api/applications/${id}/deploy`, {
       method: "POST",
     }),
   stop: (id: number) =>
@@ -57,5 +66,13 @@ export const api = {
     request<Application>(`/api/applications/${id}/clone`, {
       method: "POST",
       body: JSON.stringify(payload),
+    }),
+  doctor: (id: number) =>
+    request<DoctorReport>(`/api/applications/${id}/doctor`, { method: "POST" }),
+  revisions: (id: number) =>
+    request<ReleaseRevision[]>(`/api/applications/${id}/revisions`),
+  rollback: (id: number, revisionId: number) =>
+    request<ReleaseRevision>(`/api/applications/${id}/rollback/${revisionId}`, {
+      method: "POST",
     }),
 };
