@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -58,3 +60,31 @@ class ApplicationRead(BaseModel):
     services: list[ServiceRead]
 
     model_config = {"from_attributes": True}
+
+
+class DoctorIssue(BaseModel):
+    code: str
+    severity: Literal["critical", "warning", "info"]
+    title: str
+    detail: str
+    service: str | None = None
+    recommendation: str | None = None
+
+
+class DoctorReport(BaseModel):
+    can_deploy: bool
+    critical_count: int
+    warning_count: int
+    info_count: int
+    issues: list[DoctorIssue]
+
+
+class ReleaseRevisionRead(BaseModel):
+    id: int
+    action: str
+    status: str
+    target_revision_id: int | None
+    output: str
+    created_at: datetime
+    completed_at: datetime | None
+    doctor_report: DoctorReport | None = None
