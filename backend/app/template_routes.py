@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.compose_service import write_compose
 from app.database import get_db
 from app.models import Application, Service
+from app.port_validation import PortValidationError, validate_host_ports
 from app.schemas import ApplicationRead
 from app.template_service import (
     TEMPLATES,
@@ -46,6 +47,7 @@ class CreateFromTemplateRequest(BaseModel):
 
 class CloneRequest(BaseModel):
     name: str = Field(min_length=1, max_length=100)
+    host_ports: dict[str, int] = Field(default_factory=dict)
 
     @field_validator("name")
     @classmethod
@@ -54,6 +56,13 @@ class CloneRequest(BaseModel):
         if not normalized:
             raise ValueError("Tên application không hợp lệ")
         return normalized
+
+    @field_validator("host_ports")
+    @classmethod
+    def validate_host_ports(cls, value: dict[str, int]) -> dict[str, int]:
+        if any(port < 1 or port > 65535 for port in value.values()):
+            raise ValueError("Host port phải nằm trong khoảng 1-65535")
+        return value
 
 
 @template_router.get("/api/templates")
@@ -93,6 +102,11 @@ def create_from_template(
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+    try:
+        validate_host_ports(db, services)
+    except PortValidationError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
     application = Application(
         name=payload.name,
@@ -137,6 +151,20 @@ def clone_application(
     if existing:
         raise HTTPException(status_code=409, detail="Tên application đã tồn tại.")
 
+    public_services = [service for service in source_app.services if service.host_port]
+    missing_services = [
+        service.name for service in public_services if service.name not in payload.host_ports
+    ]
+    if missing_services:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Hãy chọn host port mới cho các service public: "
+                + ", ".join(missing_services)
+                + "."
+            ),
+        )
+
     cloned_app = Application(
         name=payload.name,
         environment=source_app.environment,
@@ -149,12 +177,21 @@ def clone_application(
                 name=service.name,
                 image=service.image,
                 container_port=service.container_port,
-                host_port=service.host_port,
+                host_port=(
+                    payload.host_ports[service.name]
+                    if service.host_port
+                    else None
+                ),
                 restart_policy=service.restart_policy,
                 environment_json=service.environment_json,
                 volumes_json=service.volumes_json,
             )
         )
+
+    try:
+        validate_host_ports(db, cloned_app.services)
+    except PortValidationError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
     db.add(cloned_app)
     try:

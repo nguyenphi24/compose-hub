@@ -96,6 +96,32 @@ class DoctorReport(BaseModel):
     issues: list[DoctorIssue]
 
 
+class ChangePlanItem(BaseModel):
+    code: str
+    risk: Literal["low", "medium", "high"]
+    title: str
+    detail: str
+    service: str | None = None
+    requires_recreate: bool = False
+    data_risk: bool = False
+
+
+class ChangePlan(BaseModel):
+    plan_id: str
+    baseline_revision_id: int | None
+    first_deploy: bool
+    rollback_available: bool
+    risk_level: Literal["low", "medium", "high"]
+    services_added: list[str]
+    services_removed: list[str]
+    services_recreated: list[str]
+    changes: list[ChangePlanItem]
+
+
+class DeployRequest(BaseModel):
+    expected_plan_id: str | None = None
+
+
 class ReleaseRevisionRead(BaseModel):
     id: int
     action: str

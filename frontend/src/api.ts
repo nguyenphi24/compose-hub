@@ -3,6 +3,7 @@ import type {
   ServerInfo,
   ContainerStatus,
   DoctorReport,
+  ChangePlan,
   ReleaseRevision,
 } from "./types";
 
@@ -32,9 +33,10 @@ export const api = {
     }),
   compose: (id: number) =>
     request<{ compose: string }>(`/api/applications/${id}/compose`),
-  deploy: (id: number) =>
+  deploy: (id: number, expectedPlanId?: string) =>
     request<{ status: string; output: string; revision?: ReleaseRevision }>(`/api/applications/${id}/deploy`, {
       method: "POST",
+      body: JSON.stringify({ expected_plan_id: expectedPlanId }),
     }),
   stop: (id: number) =>
     request<{ status: string; output: string }>(`/api/applications/${id}/stop`, {
@@ -62,7 +64,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
-  cloneApplication: (id: number, payload: { name: string }) =>
+  cloneApplication: (id: number, payload: { name: string; host_ports: Record<string, number> }) =>
     request<Application>(`/api/applications/${id}/clone`, {
       method: "POST",
       body: JSON.stringify(payload),
@@ -78,6 +80,8 @@ export const api = {
     }),
   doctor: (id: number) =>
     request<DoctorReport>(`/api/applications/${id}/doctor`, { method: "POST" }),
+  changePlan: (id: number) =>
+    request<ChangePlan>(`/api/applications/${id}/change-plan`),
   revisions: (id: number) =>
     request<ReleaseRevision[]>(`/api/applications/${id}/revisions`),
   rollback: (id: number, revisionId: number) =>

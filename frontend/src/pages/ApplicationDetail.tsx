@@ -2,10 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
 import DoctorReport from "../components/DoctorReport";
+import ChangePlanPanel from "../components/ChangePlanPanel";
+import DeployPlanDialog from "../components/DeployPlanDialog";
 import ReleaseTimeline from "../components/ReleaseTimeline";
 import RollbackDialog from "../components/RollbackDialog";
 import type {
   Application,
+  ChangePlan,
   ContainerStatus,
   DoctorReport as DoctorReportData,
   ReleaseRevision,
@@ -20,23 +23,31 @@ export default function ApplicationDetail() {
   const [containers, setContainers] = useState<ContainerStatus[]>([]);
   const [logs, setLogs] = useState("");
   const [doctor, setDoctor] = useState<DoctorReportData | null>(null);
+  const [changePlan, setChangePlan] = useState<ChangePlan | null>(null);
   const [revisions, setRevisions] = useState<ReleaseRevision[]>([]);
   const [doctorLoading, setDoctorLoading] = useState(false);
+  const [planLoading, setPlanLoading] = useState(false);
+  const [showDeployPlan, setShowDeployPlan] = useState(false);
   const [rollbackTarget, setRollbackTarget] = useState<ReleaseRevision | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showCloneModal, setShowCloneModal] = useState(false);
+  const [cloneName, setCloneName] = useState("");
+  const [clonePorts, setClonePorts] = useState<Record<string, string>>({});
+  const [cloneError, setCloneError] = useState("");
 
   const refresh = useCallback(async () => {
     try {
-      const [appData, composeData, statusData, logData, doctorData, revisionData] = await Promise.all([
+      const [appData, composeData, statusData, logData, doctorData, planData, revisionData] = await Promise.all([
         api.application(appId),
         api.compose(appId),
         api.status(appId),
         api.logs(appId),
         api.doctor(appId),
+        api.changePlan(appId),
         api.revisions(appId),
       ]);
       setApplication(appData);
@@ -44,6 +55,7 @@ export default function ApplicationDetail() {
       setContainers(statusData.containers);
       setLogs(logData.logs);
       setDoctor(doctorData);
+      setChangePlan(planData);
       setRevisions(revisionData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không thể tải dữ liệu");
@@ -66,24 +78,67 @@ export default function ApplicationDetail() {
     }
   };
 
-  const action = async (type: "deploy" | "stop") => {
+  const refreshChangePlan = async () => {
+    setPlanLoading(true);
+    setError("");
+    try {
+      setChangePlan(await api.changePlan(appId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể tạo Change Plan");
+    } finally {
+      setPlanLoading(false);
+    }
+  };
+
+  const stopApplication = async () => {
     setBusy(true);
     setError("");
     setMessage("");
     try {
-      if (type === "deploy") {
-        const freshDoctor = await api.doctor(appId);
-        setDoctor(freshDoctor);
-        if (!freshDoctor.can_deploy) {
-          setError("Deploy bị chặn. Hãy xử lý các lỗi Critical trong Compose Doctor.");
-          return;
-        }
-      }
-      const result = type === "deploy" ? await api.deploy(appId) : await api.stop(appId);
+      const result = await api.stop(appId);
       setMessage(result.output || result.status);
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Thao tác thất bại");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const prepareDeploy = async () => {
+    setPlanLoading(true);
+    setError("");
+    setMessage("");
+    try {
+      const [freshDoctor, freshPlan] = await Promise.all([
+        api.doctor(appId),
+        api.changePlan(appId),
+      ]);
+      setDoctor(freshDoctor);
+      setChangePlan(freshPlan);
+      if (!freshDoctor.can_deploy) {
+        setError("Deploy bị chặn. Hãy xử lý các lỗi Critical trong Compose Doctor.");
+        return;
+      }
+      setShowDeployPlan(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể chuẩn bị Deploy");
+    } finally {
+      setPlanLoading(false);
+    }
+  };
+
+  const confirmDeploy = async () => {
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const result = await api.deploy(appId, changePlan?.plan_id);
+      setMessage(result.output || result.status);
+      setShowDeployPlan(false);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Deploy thất bại");
     } finally {
       setBusy(false);
     }
@@ -106,24 +161,45 @@ export default function ApplicationDetail() {
     }
   };
 
+  const openCloneModal = () => {
+    if (!application) return;
+    setCloneName(`${application.name}-copy`);
+    setClonePorts(
+      Object.fromEntries(
+        application.services
+          .filter((service) => service.host_port)
+          .map((service) => [service.name, ""])
+      )
+    );
+    setCloneError("");
+    setShowCloneModal(true);
+  };
+
   const cloneApp = async () => {
     if (!application) return;
-    const newName = prompt("Nhập tên cho application mới:", `${application.name}-copy`);
-    if (!newName) return;
-    const cleanName = newName.trim().toLowerCase().replace(/\s+/g, "-");
+    const cleanName = cloneName.trim().toLowerCase().replace(/\s+/g, "-");
     if (!cleanName) {
-      alert("Tên không hợp lệ");
+      setCloneError("Tên clone không hợp lệ.");
+      return;
+    }
+    const publicServices = application.services.filter((service) => service.host_port);
+    const hostPorts = Object.fromEntries(
+      publicServices.map((service) => [service.name, Number(clonePorts[service.name])])
+    );
+    if (Object.values(hostPorts).some((port) => !Number.isInteger(port) || port < 1 || port > 65535)) {
+      setCloneError("Hãy nhập host port mới hợp lệ (1-65535) cho mọi service public.");
       return;
     }
     setBusy(true);
-    setError("");
+    setCloneError("");
     setMessage("");
     try {
-      const cloned = await api.cloneApplication(appId, { name: cleanName });
+      const cloned = await api.cloneApplication(appId, { name: cleanName, host_ports: hostPorts });
       setMessage("Clone thành công!");
+      setShowCloneModal(false);
       navigate(`/applications/${cloned.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Clone thất bại");
+      setCloneError(err instanceof Error ? err.message : "Clone thất bại");
     } finally {
       setBusy(false);
     }
@@ -156,7 +232,7 @@ export default function ApplicationDetail() {
           <p>{application.description || "Application Docker Compose"}</p>
         </div>
         <div className="actions">
-          <button className="button secondary" disabled={busy} onClick={cloneApp}>Clone</button>
+          <button className="button secondary" disabled={busy} onClick={openCloneModal}>Clone</button>
           <button
             className="button secondary"
             disabled={busy}
@@ -171,9 +247,9 @@ export default function ApplicationDetail() {
           >
             🗑 Xóa
           </button>
-          <button className="button secondary" disabled={busy} onClick={() => action("stop")}>Stop</button>
-          <button className="button primary" disabled={busy || doctorLoading || Boolean(doctor && !doctor.can_deploy)} onClick={() => action("deploy")}>
-            {busy ? "Đang xử lý..." : "Deploy"}
+          <button className="button secondary" disabled={busy} onClick={stopApplication}>Stop</button>
+          <button className="button primary" disabled={busy || doctorLoading || planLoading || Boolean(doctor && !doctor.can_deploy)} onClick={prepareDeploy}>
+            {planLoading ? "Đang lập plan..." : "Deploy"}
           </button>
         </div>
       </header>
@@ -201,6 +277,10 @@ export default function ApplicationDetail() {
 
       <section className="section">
         <DoctorReport report={doctor} loading={doctorLoading} onRun={runDoctor} />
+      </section>
+
+      <section className="section">
+        <ChangePlanPanel plan={changePlan} loading={planLoading} onRefresh={refreshChangePlan} />
       </section>
 
       <section className="two-columns section">
@@ -269,6 +349,50 @@ export default function ApplicationDetail() {
         onCancel={() => setRollbackTarget(null)}
         onConfirm={confirmRollback}
       />
+
+      {showDeployPlan && (
+        <DeployPlanDialog
+          plan={changePlan}
+          busy={busy}
+          onCancel={() => setShowDeployPlan(false)}
+          onConfirm={confirmDeploy}
+        />
+      )}
+
+      {showCloneModal && (
+        <div className="modal-backdrop">
+          <form className="modal" onSubmit={(event) => { event.preventDefault(); cloneApp(); }}>
+            <p className="eyebrow">SAFE CLONE</p>
+            <h2>Clone "{application.name}"</h2>
+            <p>Chọn host port mới để clone có thể deploy song song với application gốc.</p>
+            {cloneError && <div className="alert error">{cloneError}</div>}
+            <div className="clone-fields">
+              <label>
+                Tên application mới
+                <input value={cloneName} onChange={(event) => setCloneName(event.target.value)} required />
+              </label>
+              {application.services.filter((service) => service.host_port).map((service) => (
+                <label key={service.name}>
+                  Host port mới cho {service.name}
+                  <input
+                    type="number"
+                    min="1"
+                    max="65535"
+                    value={clonePorts[service.name] ?? ""}
+                    placeholder={`Port gốc: ${service.host_port}`}
+                    onChange={(event) => setClonePorts((ports) => ({ ...ports, [service.name]: event.target.value }))}
+                    required
+                  />
+                </label>
+              ))}
+            </div>
+            <div className="actions modal-actions">
+              <button className="button secondary" type="button" disabled={busy} onClick={() => setShowCloneModal(false)}>Hủy</button>
+              <button className="button primary" type="submit" disabled={busy}>{busy ? "Đang clone..." : "Tạo clone"}</button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (

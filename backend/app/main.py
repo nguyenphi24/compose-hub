@@ -12,14 +12,15 @@ from .compose_service import (
     application_logs,
     application_status,
     compose_text,
-    port_is_available,
     run_compose,
     server_info,
     write_compose,
 )
+from .change_plan_service import build_change_plan
 from .database import get_db, initialize_database
 from .doctor_service import inspect_application
 from .models import Application, Service
+from .port_validation import PortValidationError, validate_host_ports
 from .release_service import (
     DeploymentInProgressError,
     create_revision,
@@ -28,11 +29,11 @@ from .release_service import (
 )
 from .safety_routes import router as safety_router
 from .template_routes import template_router
-from .schemas import ApplicationCreate, ApplicationRead, ApplicationUpdate
+from .schemas import ApplicationCreate, ApplicationRead, ApplicationUpdate, DeployRequest
 
 initialize_database()
 
-app = FastAPI(title="ComposeHub API", version="0.1.0")
+app = FastAPI(title="ComposeHub API", version="0.2.0")
 app.include_router(template_router)
 app.include_router(safety_router)
 
@@ -62,16 +63,10 @@ def list_applications(db: Session = Depends(get_db)):
 
 @app.post("/api/applications", response_model=ApplicationRead, status_code=201)
 def create_application(payload: ApplicationCreate, db: Session = Depends(get_db)):
-    requested_ports = [service.host_port for service in payload.services if service.host_port]
-    if len(requested_ports) != len(set(requested_ports)):
-        raise HTTPException(status_code=400, detail="Có host port bị trùng trong application.")
-
-    for port in requested_ports:
-        if not port_is_available(port):
-            raise HTTPException(
-                status_code=409,
-                detail=f"Port {port} đang được sử dụng trên Docker host.",
-            )
+    try:
+        validate_host_ports(db, payload.services)
+    except PortValidationError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
     application = Application(
         name=payload.name,
@@ -122,8 +117,25 @@ def get_compose(application_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/api/applications/{application_id}/deploy")
-def deploy_application(application_id: int, db: Session = Depends(get_db)):
+def deploy_application(
+    application_id: int,
+    payload: DeployRequest | None = None,
+    db: Session = Depends(get_db),
+):
     application = get_application_or_404(application_id, db)
+    if payload and payload.expected_plan_id:
+        current_plan = build_change_plan(db, application)
+        if payload.expected_plan_id != current_plan.plan_id:
+            raise HTTPException(
+                status_code=409,
+                detail="Change Plan đã cũ vì cấu hình hoặc baseline release đã thay đổi. Hãy refresh plan trước khi Deploy.",
+            )
+    try:
+        validate_host_ports(
+            db, application.services, current_application=application
+        )
+    except PortValidationError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
     report = inspect_application(application)
     if not report.can_deploy:
         create_revision(
@@ -183,6 +195,13 @@ def get_application_logs(application_id: int, db: Session = Depends(get_db)):
 @app.patch("/api/applications/{application_id}", response_model=ApplicationRead)
 def update_application(application_id: int, payload: ApplicationUpdate, db: Session = Depends(get_db)):
     application = get_application_or_404(application_id, db)
+    if payload.services is not None:
+        try:
+            validate_host_ports(
+                db, payload.services, current_application=application
+            )
+        except PortValidationError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
     if payload.name is not None:
         # Check duplicate name
         if payload.name != application.name:
@@ -195,18 +214,6 @@ def update_application(application_id: int, payload: ApplicationUpdate, db: Sess
     if payload.description is not None:
         application.description = payload.description
     if payload.services is not None:
-        # Validate ports
-        requested_ports = [s.host_port for s in payload.services if s.host_port]
-        if len(requested_ports) != len(set(requested_ports)):
-            raise HTTPException(status_code=400, detail="Có host port bị trùng trong application.")
-        for port in requested_ports:
-            # Allow ports already owned by this application
-            owned = any(svc.host_port == port for svc in application.services)
-            if not owned and not port_is_available(port):
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Port {port} đang được sử dụng trên Docker host.",
-                )
         # Replace services
         for svc in list(application.services):
             db.delete(svc)

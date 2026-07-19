@@ -56,6 +56,30 @@ export type DoctorReport = {
   issues: DoctorIssue[];
 };
 
+export type ChangeRisk = "low" | "medium" | "high";
+
+export type ChangePlanItem = {
+  code: string;
+  risk: ChangeRisk;
+  title: string;
+  detail: string;
+  service: string | null;
+  requires_recreate: boolean;
+  data_risk: boolean;
+};
+
+export type ChangePlan = {
+  plan_id: string;
+  baseline_revision_id: number | null;
+  first_deploy: boolean;
+  rollback_available: boolean;
+  risk_level: ChangeRisk;
+  services_added: string[];
+  services_removed: string[];
+  services_recreated: string[];
+  changes: ChangePlanItem[];
+};
+
 export type ReleaseRevision = {
   id: number;
   action: string;

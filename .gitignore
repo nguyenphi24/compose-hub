@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 node_modules/
 dist/
+frontend/tsconfig.tsbuildinfo
 data/
 .env
 .DS_Store
