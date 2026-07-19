@@ -1,47 +1,47 @@
-# Roadmap
+# ComposeHub release roadmap
 
-## v0.1 — Single Host MVP
+This roadmap reflects released functionality and the order of future work. A
+future release starts only after the active release passes its gate in
+[`task.md`](../task.md).
 
-- Application CRUD
-- Service Builder
-- Compose Generator
-- Port Conflict Detection
-- Deploy / Stop
-- Container Status
-- Logs
+## Released
 
-## v0.2 — Vận hành
+### v0.1.0 — Single Host Safe Release
 
-- Environment editor tốt hơn
-- Named volume manager
-- Deployment history
-- Revision snapshot
-- Rollback
-- Basic authentication
+- Application builder and blueprints.
+- Compose Doctor.
+- Deploy, status, logs and stop.
+- Release snapshots and rollback.
 
-## v0.3 — Multi Server
+### v0.2.0 — Change Plan
 
-- ComposeHub Agent
-- Agent registration token
-- Heartbeat
-- Remote command execution
-- Server grouping
-- Environment grouping
+- Desired-versus-released Compose comparison.
+- Deployment risk and data-risk classification.
+- Deploy confirmation and stale-plan protection.
 
-## v0.4 — Networking
+## Next
 
-- Network graph
-- Shared network warning
-- Public exposure warning
-- Traefik integration
-- Domain manager
+### v0.3.0 — Recovery Capsule
 
-## v1.0
+- Export a portable recovery manifest for the active release.
+- Compose snapshot, image digests and secret references.
+- Volume inventory with explicit backup coverage status.
+- Capsule integrity validation.
 
-- Team
-- RBAC
-- Audit log
-- GitOps
-- Backup/restore
-- Notifications
-- Plugin system
+## Later
+
+### v0.4.0 — Safe Clone Environment
+
+- Port and domain remapping.
+- Empty, sanitized or restored data modes.
+- Production-to-staging safety checks.
+
+### v0.5.0 — Distribution
+
+- Published multi-architecture container images.
+- One-command installer.
+- Version-pinned update and rollback commands.
+
+Authentication/RBAC, multi-server management, Git integration and networking
+automation remain unversioned until the preceding recovery and distribution
+work is released.

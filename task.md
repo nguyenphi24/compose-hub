@@ -1,67 +1,91 @@
-# ComposeHub roadmap
+# ComposeHub release tracker
 
-## Mục tiêu gần nhất
+## Release policy
 
-Hoàn thành **v0.1 Single Host MVP**: một người dùng có thể tạo, sửa, xóa, kiểm tra, deploy, xem logs và rollback Docker Compose application qua UI mà không cần SSH.
+Chỉ triển khai một version tại một thời điểm. Version hiện tại phải qua đủ release
+gate trước khi mở scope version tiếp theo.
 
-Không mở rộng sang multi-server, Git deploy, reverse proxy/SSL, RBAC, backup thật hoặc Kubernetes trước khi các việc P0 hoàn tất.
+Trạng thái version:
 
-## Đã hoàn thành
+```text
+Planned → In progress → Verification → Released
+```
 
-- [x] Application CRUD: create, list, detail, update, delete; có UI chỉnh sửa và xác nhận xóa.
-- [x] Manual Builder: image, port, restart policy, environment variables, volume mounts và Compose preview.
-- [x] Blueprint: Nginx, PostgreSQL, n8n + PostgreSQL; preview và clone application.
-- [x] Compose Doctor: port conflict, database public, privileged/socket mount, image tag, volume, restart policy và healthcheck.
-- [x] Safe Release: release snapshot, timeline, rollback và khóa thao tác deploy/rollback đồng thời.
-- [x] Test runner: `make test` dùng SQLite/data tạm thời, không cần Docker daemon.
-- [x] Backend coverage cho CRUD, Blueprint và Safe Release API.
+Release gate bắt buộc:
 
-## P0 — Chốt v0.1
+- [ ] Scope và tiêu chí hoàn thành đã được chốt.
+- [ ] Feature hoạt động end-to-end qua API và UI nếu có giao diện.
+- [ ] Backend test suite pass.
+- [ ] Frontend production build pass.
+- [ ] Docker smoke test pass nếu thay đổi hành vi runtime/deploy.
+- [ ] README và roadmap phản ánh đúng tính năng đã implement.
+- [ ] Commit đã merge từ `dev` vào `main`.
+- [ ] Release tag đã được tạo và push.
 
-### 1. Chuẩn hóa port validation cho mọi luồng
+## v0.1.0 — Single Host Safe Release
 
-- [x] Tách một service validate host port dùng chung cho manual create, update, blueprint create và clone.
-- [x] Blueprint create trả 409 dễ hiểu nếu port đã bị dùng.
-- [x] Khi Clone app có service public, UI bắt nhập host port mới cho từng service public; backend validate các giá trị đó.
-- [x] Không cho clone/deploy một app trùng host port với app khác.
-- [x] Thêm test API cho Manual/Blueprint/Clone port conflict.
+**Status:** Released
 
-**Done khi:** không còn đường UI/API nào tạo được application deployable với host port trùng; thông báo luôn nêu port bị chiếm.
+- [x] Application CRUD và Manual Builder.
+- [x] Nginx, PostgreSQL và n8n + PostgreSQL Blueprints.
+- [x] Compose preview và host-port validation dùng chung.
+- [x] Compose Doctor và Critical deploy blocking.
+- [x] Release snapshot, timeline và rollback.
+- [x] Container status, logs, stop và deploy concurrency lock.
+- [x] Backend tests, frontend build và Docker smoke test.
+- [x] Tag `v0.1.0`.
 
-### 2. Smoke test trên Docker thật
+## v0.2.0 — Change Plan
 
-- [x] Tạo Nginx thủ công, dùng environment variable và named volume, sau đó Doctor → Deploy → Status → Logs → Stop.
-- [x] Tạo n8n + PostgreSQL từ Blueprint, deploy rồi kiểm tra volume/database không public.
-- [x] Deploy thêm revision và rollback về revision trước.
-- [x] Thử Doctor với PostgreSQL public port để xác nhận deploy bị chặn.
-- [x] Ghi kết quả smoke test và giới hạn cleanup trong README.
+**Status:** Released
 
-**Done khi:** cả hai demo chạy thành công trên Docker host, không có lỗi container-name conflict hay port conflict khó hiểu.
+- [x] So sánh desired Compose với release thành công gần nhất.
+- [x] Phát hiện service add/remove/recreate.
+- [x] Phát hiện image, port, domain/URL, environment key, restart policy và volume change.
+- [x] Low/Medium/High risk và data-risk warning.
+- [x] Hiển thị baseline revision và rollback availability.
+- [x] Deploy confirmation UI.
+- [x] Stale-plan fingerprint trả 409 nếu config/baseline thay đổi.
+- [x] Không trả secret values trong Change Plan.
+- [x] 27 backend tests và frontend production build pass.
+- [x] Tag `v0.2.0`.
 
-### 3. Release polish
+## v0.3.0 — Recovery Capsule
 
-- [x] Kiểm tra UI tại chiều rộng 375px; dashboard và thao tác chính render một cột, không bị che khuất.
-- [x] README có lệnh chạy/test chính xác, cảnh báo rõ Docker socket tương đương quyền quản trị host và chỉ nên mở UI qua localhost/VPN/mạng tin cậy.
-- [x] Bỏ `frontend/tsconfig.tsbuildinfo` khỏi Git tracking; file đã nằm trong `.gitignore`.
-- [x] Tag release `v0.1.0` sau khi toàn bộ P0 pass.
+**Status:** Planned
 
-## v0.2 — Change Control & Recovery
+Version này chỉ chuyển sang **In progress** sau khi scope dưới đây được xác nhận.
 
-Doctor và Release là nền tảng, không phải lợi thế duy nhất so với Portainer. Ưu tiên một hướng rõ ràng thay vì thêm Docker resource manager.
+### Proposed scope
 
-### Change Control & Recovery
+- [ ] Export capsule từ release thành công đang active.
+- [ ] Capsule chứa Compose snapshot, application metadata và baseline revision.
+- [ ] Resolve image digest khi Docker host có image; fallback rõ ràng khi chưa pull.
+- [ ] Chỉ export secret references/key names, không export secret values.
+- [ ] Volume manifest nêu named/bind mount và trạng thái dữ liệu chưa được backup.
+- [ ] Download capsule JSON từ UI.
+- [ ] Validate capsule schema và checksum khi import/inspect.
+- [ ] Tests xác nhận capsule không làm lộ credential.
 
-- [x] Change Plan API so sánh release thành công gần nhất với cấu hình mong muốn.
-- [x] Phát hiện add/remove/recreate, image, port, domain/URL, environment key, restart policy và volume thay đổi.
-- [x] Phân loại Low/Medium/High risk, đánh dấu data risk và khả năng rollback.
-- [x] Deploy confirmation UI hiển thị plan trước khi chạy.
-- [x] Stale-plan fingerprint: từ chối Deploy bằng 409 nếu config/baseline đã đổi sau khi lập plan.
-- [x] Không lộ giá trị secret trong Change Plan; chỉ trả tên environment key thay đổi.
-- [ ] Recovery Capsule: export Compose snapshot, image digest, secret references và manifest volume backup để khôi phục application có kiểm soát.
-- [ ] Safe Clone Environment: clone production sang staging/dev với port/domain mới và lựa chọn dữ liệu rỗng/sanitized/restore từ backup.
+### Release gate
 
-## Nguyên tắc sản phẩm
+- [ ] Toàn bộ proposed scope được implement hoặc mục bị loại có quyết định ghi lại.
+- [ ] Backend test suite và frontend build pass.
+- [ ] Export capsule được smoke test trên application đã deploy.
+- [ ] README cập nhật giới hạn: capsule metadata chưa đồng nghĩa volume backup hoàn chỉnh.
+- [ ] Merge `dev → main` và push tag `v0.3.0`.
 
-- ComposeHub quản lý **vòng đời application**, không cạnh tranh bằng màn hình quản lý container/image/network rời rạc như Portainer.
-- Container Console chỉ thêm sau khi có auth hoặc UI giới hạn localhost/VPN; Docker socket + console gần tương đương quyền shell vào host.
-- Mọi tính năng mới phải giữ Docker Compose là định dạng export được, không khóa người dùng vào DSL riêng.
+## Later versions
+
+Chưa mở implementation cho đến khi `v0.3.0` Released.
+
+- **v0.4.0 — Safe Clone Environment:** port/domain remap và data mode có kiểm soát.
+- **v0.5.0 — One-command Installation:** published images, installer và update command.
+- Authentication/RBAC phải có trước Container Console hoặc public deployment.
+
+## Product rules
+
+- ComposeHub quản lý vòng đời application, không sao chép Docker resource UI của Portainer.
+- Docker Compose luôn là định dạng có thể export; không khóa người dùng vào DSL riêng.
+- Không ghi tính năng vào README như đã có trước khi code và release gate pass.
+- Docker socket và container console được xem là quyền quản trị host.
