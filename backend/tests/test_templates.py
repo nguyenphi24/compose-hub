@@ -95,7 +95,8 @@ def test_api_preview_template(client):
     assert "7000:80" in data["compose"]
 
 
-def test_api_create_from_template_and_clone(client):
+def test_api_create_from_template_and_clone(client, monkeypatch):
+    monkeypatch.setattr("app.port_validation.port_is_available", lambda _port: True)
     # 1. Create App from template
     app_name = "test-app-from-template"
 
@@ -122,11 +123,63 @@ def test_api_create_from_template_and_clone(client):
     clone_name = f"clone-{app_name}"
     clone_response = client.post(
         f"/api/applications/{app_id}/clone",
-        json={"name": clone_name},
+        json={"name": clone_name, "host_ports": {"web": 8101}},
     )
     assert clone_response.status_code == 201
     cloned_app = clone_response.json()
     assert cloned_app["name"] == clone_name
     assert cloned_app["environment"] == "staging"
     assert len(cloned_app["services"]) == 1
-    assert cloned_app["services"][0]["host_port"] == 8100
+    assert cloned_app["services"][0]["host_port"] == 8101
+
+
+def test_blueprint_rejects_port_reserved_by_an_application(client, monkeypatch):
+    monkeypatch.setattr("app.port_validation.port_is_available", lambda _port: True)
+    payload = {
+        "template_id": "nginx",
+        "environment": "production",
+        "description": "",
+        "variables": {"host_port": 8200},
+    }
+
+    first = client.post(
+        "/api/applications/from-template",
+        json={**payload, "name": "port-owner"},
+    )
+    assert first.status_code == 201
+
+    conflict = client.post(
+        "/api/applications/from-template",
+        json={**payload, "name": "port-conflict"},
+    )
+    assert conflict.status_code == 409
+    assert "8200" in conflict.json()["detail"]
+    assert "port-owner" in conflict.json()["detail"]
+
+
+def test_clone_requires_new_public_ports_and_rejects_conflict(client, monkeypatch):
+    monkeypatch.setattr("app.port_validation.port_is_available", lambda _port: True)
+    source = client.post(
+        "/api/applications/from-template",
+        json={
+            "template_id": "nginx",
+            "name": "clone-source",
+            "variables": {"host_port": 8300},
+        },
+    )
+    assert source.status_code == 201
+    source_id = source.json()["id"]
+
+    missing = client.post(
+        f"/api/applications/{source_id}/clone",
+        json={"name": "clone-missing-port"},
+    )
+    assert missing.status_code == 400
+    assert "web" in missing.json()["detail"]
+
+    conflict = client.post(
+        f"/api/applications/{source_id}/clone",
+        json={"name": "clone-conflict", "host_ports": {"web": 8300}},
+    )
+    assert conflict.status_code == 409
+    assert "8300" in conflict.json()["detail"]

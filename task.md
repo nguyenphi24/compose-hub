@@ -1,71 +1,62 @@
-# Task còn thiếu để chốt v0.1
+# Solo backlog — ComposeHub v0.1
 
-## Mục tiêu release
+## Mục tiêu gần nhất
 
-Chỉ đánh dấu **v0.1 — Single Host MVP** hoàn thành khi người dùng có thể tạo, sửa, xóa và triển khai một Docker Compose application qua UI; mọi luồng đều có kiểm tra port, trạng thái container và logs.
+Hoàn thành **v0.1 Single Host MVP**: một người dùng có thể tạo, sửa, xóa, kiểm tra, deploy, xem logs và rollback Docker Compose application qua UI mà không cần SSH.
 
-Các tính năng Safe Release và Blueprint hiện có là phần nâng cấp của MVP, không thay thế các tiêu chí cơ bản bên dưới.
+Không mở rộng sang multi-server, Git deploy, reverse proxy/SSL, RBAC, backup thật hoặc Kubernetes trước khi các việc P0 hoàn tất.
 
-## Dev01 — Application Builder hoàn chỉnh
+## Đã hoàn thành
 
-### 1. Hoàn thiện Application CRUD
+- [x] Application CRUD: create, list, detail, update, delete; có UI chỉnh sửa và xác nhận xóa.
+- [x] Manual Builder: image, port, restart policy, environment variables, volume mounts và Compose preview.
+- [x] Blueprint: Nginx, PostgreSQL, n8n + PostgreSQL; preview và clone application.
+- [x] Compose Doctor: port conflict, database public, privileged/socket mount, image tag, volume, restart policy và healthcheck.
+- [x] Safe Release: release snapshot, timeline, rollback và khóa thao tác deploy/rollback đồng thời.
+- [x] Test runner: `make test` dùng SQLite/data tạm thời, không cần Docker daemon.
+- [x] Backend coverage cho CRUD, Blueprint và Safe Release API.
 
-- [ ] Thêm `PATCH /api/applications/{id}` để sửa name, environment, description và services.
-- [ ] Thêm `DELETE /api/applications/{id}` với xác nhận rõ ràng: chỉ xóa metadata/compose directory; không tự xóa volume Docker trong v0.1.
-- [ ] Tạo UI **Chỉnh sửa Application** từ trang detail hoặc route riêng.
-- [ ] Thêm nút **Xóa Application**, modal xác nhận và quay về Dashboard sau khi xóa.
-- [ ] Viết test create → update → delete.
+## P0 — Chốt v0.1
 
-**Done khi:** sau khi sửa service, `compose.yaml` được cập nhật; app đã deploy có thể deploy lại revision mới; xóa app không còn xuất hiện ở Dashboard.
+### 1. Chuẩn hóa port validation cho mọi luồng
 
-### 2. Hoàn thiện Manual Service Builder
+- [x] Tách một service validate host port dùng chung cho manual create, update, blueprint create và clone.
+- [x] Blueprint create trả 409 dễ hiểu nếu port đã bị dùng.
+- [x] Khi Clone app có service public, UI bắt nhập host port mới cho từng service public; backend validate các giá trị đó.
+- [x] Không cho clone/deploy một app trùng host port với app khác.
+- [x] Thêm test API cho Manual/Blueprint/Clone port conflict.
 
-- [ ] Cho nhập environment variables dạng key/value; bỏ dòng rỗng và báo key trùng.
-- [ ] Cho thêm/xóa volume mount `source` → `target`.
-- [ ] Validate volume target bắt đầu bằng `/`; cảnh báo bind mount host path.
-- [ ] Hiển thị Compose preview trước khi tạo app.
-- [ ] Giữ nguyên data khi quay lại chỉnh sửa app.
+**Done khi:** không còn đường UI/API nào tạo được application deployable với host port trùng; thông báo luôn nêu port bị chiếm.
 
-**Done khi:** tạo thủ công được app `web + postgres`, có environment và named volume; Compose preview khớp với data đã lưu.
+### 2. Smoke test trên Docker thật
 
-### 3. Chuẩn hóa port validation cho Blueprint và Clone
+- [x] Tạo Nginx thủ công, dùng environment variable và named volume, sau đó Doctor → Deploy → Status → Logs → Stop.
+- [x] Tạo n8n + PostgreSQL từ Blueprint, deploy rồi kiểm tra volume/database không public.
+- [x] Deploy thêm revision và rollback về revision trước.
+- [x] Thử Doctor với PostgreSQL public port để xác nhận deploy bị chặn.
+- [x] Ghi kết quả smoke test và giới hạn cleanup trong README.
 
-- [ ] Dùng chung một service validate port cho manual create, blueprint create và update.
-- [ ] Clone có public port phải buộc người dùng đổi host port, hoặc tạo clone ở trạng thái draft không thể Deploy.
-- [ ] Trả lỗi 409 dễ hiểu, nêu rõ port nào đang bị dùng.
+**Done khi:** cả hai demo chạy thành công trên Docker host, không có lỗi container-name conflict hay port conflict khó hiểu.
 
-**Done khi:** không thể tạo/deploy hai application cùng một host port mà không có thông báo rõ ràng.
+### 3. Release polish
 
-## Dev02 — Safe Release hardening và test runner
+- [x] Kiểm tra UI tại chiều rộng 375px; dashboard và thao tác chính render một cột, không bị che khuất.
+- [x] README có lệnh chạy/test chính xác, cảnh báo rõ Docker socket tương đương quyền quản trị host và chỉ nên mở UI qua localhost/VPN/mạng tin cậy.
+- [x] Bỏ `frontend/tsconfig.tsbuildinfo` khỏi Git tracking; file đã nằm trong `.gitignore`.
+- [x] Tag release `v0.1.0` sau khi toàn bộ P0 pass.
 
-### 4. Test suite chạy được bằng một lệnh
+## P1 — Sau v0.1: tạo khác biệt
 
-- [x] Thêm `backend/requirements-dev.txt` gồm `pytest` và `httpx`.
-- [x] Thêm lệnh `make test` và hướng dẫn trong README.
-- [x] Tách test database sang SQLite tạm thời, không ghi vào `data/composehub.db`.
-- [x] Đảm bảo test không cần Docker daemon thật; mock `run_compose` và Docker client.
+Doctor và Release là nền tảng, không phải lợi thế duy nhất so với Portainer. Ưu tiên một hướng rõ ràng thay vì thêm Docker resource manager.
 
-**Done khi:** cài dependencies theo tài liệu rồi chạy toàn bộ backend tests thành công bằng một lệnh.
+### Change Control & Recovery
 
-### 5. Bổ sung test API Safe Release
+- [ ] Change Plan: so sánh Compose đang chạy với cấu hình mới, cho biết service nào recreate, port/domain nào thay đổi, volume nào rủi ro và rollback có sẵn hay không.
+- [ ] Recovery Capsule: export Compose snapshot, image digest, secret references và manifest volume backup để khôi phục application có kiểm soát.
+- [ ] Safe Clone Environment: clone production sang staging/dev với port/domain mới và lựa chọn dữ liệu rỗng/sanitized/restore từ backup.
 
-- [x] Deploy thành công tạo revision `success` và snapshot Compose.
-- [x] Doctor có Critical tạo revision `blocked` và API trả 422.
-- [x] Lỗi Docker tạo revision `failed` với output lỗi.
-- [x] Rollback chỉ nhận revision `success` của đúng application.
-- [x] Hai request Deploy/Rollback đồng thời: request sau nhận 409 thay vì Docker container-name conflict.
+## Nguyên tắc sản phẩm
 
-**Done khi:** các state `blocked`, `failed`, `success` và concurrency lock đều có test API.
-
-## Cả hai — Release checklist
-
-- [ ] Chạy backend test suite từ máy sạch theo tài liệu.
-- [ ] Chạy `npm run build` trong `frontend`.
-- [ ] Demo thực tế: tạo Nginx → Doctor → Deploy → Status/Logs → Stop.
-- [ ] Demo thực tế: tạo `n8n + PostgreSQL` → Deploy → Release timeline → Rollback.
-- [ ] Kiểm tra UI mobile cơ bản tại độ rộng 375px.
-- [ ] Cập nhật `README.md` với test command và giới hạn bảo mật Docker socket.
-
-## Ngoài v0.1
-
-Không mở rộng scope sang Git deploy, authentication/RBAC, reverse proxy/SSL, multi-server, backup/restore hoặc monitoring lịch sử trước khi các checkbox v0.1 hoàn thành.
+- ComposeHub quản lý **vòng đời application**, không cạnh tranh bằng màn hình quản lý container/image/network rời rạc như Portainer.
+- Container Console chỉ thêm sau khi có auth hoặc UI giới hạn localhost/VPN; Docker socket + console gần tương đương quyền shell vào host.
+- Mọi tính năng mới phải giữ Docker Compose là định dạng export được, không khóa người dùng vào DSL riêng.

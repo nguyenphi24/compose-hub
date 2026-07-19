@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
@@ -46,6 +47,16 @@ class Service(Base):
     volumes_json: Mapped[str] = mapped_column(Text, default="[]")
 
     application: Mapped[Application] = relationship(back_populates="services")
+
+    @property
+    def environment(self) -> dict[str, str]:
+        value = json.loads(self.environment_json or "{}")
+        return value if isinstance(value, dict) else {}
+
+    @property
+    def volumes(self) -> list[dict[str, str]]:
+        value = json.loads(self.volumes_json or "[]")
+        return value if isinstance(value, list) else []
 
 
 class ReleaseRevision(Base):

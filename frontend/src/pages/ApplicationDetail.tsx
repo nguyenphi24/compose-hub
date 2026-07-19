@@ -28,6 +28,10 @@ export default function ApplicationDetail() {
   const [busy, setBusy] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showCloneModal, setShowCloneModal] = useState(false);
+  const [cloneName, setCloneName] = useState("");
+  const [clonePorts, setClonePorts] = useState<Record<string, string>>({});
+  const [cloneError, setCloneError] = useState("");
 
   const refresh = useCallback(async () => {
     try {
@@ -106,24 +110,45 @@ export default function ApplicationDetail() {
     }
   };
 
+  const openCloneModal = () => {
+    if (!application) return;
+    setCloneName(`${application.name}-copy`);
+    setClonePorts(
+      Object.fromEntries(
+        application.services
+          .filter((service) => service.host_port)
+          .map((service) => [service.name, ""])
+      )
+    );
+    setCloneError("");
+    setShowCloneModal(true);
+  };
+
   const cloneApp = async () => {
     if (!application) return;
-    const newName = prompt("Nhập tên cho application mới:", `${application.name}-copy`);
-    if (!newName) return;
-    const cleanName = newName.trim().toLowerCase().replace(/\s+/g, "-");
+    const cleanName = cloneName.trim().toLowerCase().replace(/\s+/g, "-");
     if (!cleanName) {
-      alert("Tên không hợp lệ");
+      setCloneError("Tên clone không hợp lệ.");
+      return;
+    }
+    const publicServices = application.services.filter((service) => service.host_port);
+    const hostPorts = Object.fromEntries(
+      publicServices.map((service) => [service.name, Number(clonePorts[service.name])])
+    );
+    if (Object.values(hostPorts).some((port) => !Number.isInteger(port) || port < 1 || port > 65535)) {
+      setCloneError("Hãy nhập host port mới hợp lệ (1-65535) cho mọi service public.");
       return;
     }
     setBusy(true);
-    setError("");
+    setCloneError("");
     setMessage("");
     try {
-      const cloned = await api.cloneApplication(appId, { name: cleanName });
+      const cloned = await api.cloneApplication(appId, { name: cleanName, host_ports: hostPorts });
       setMessage("Clone thành công!");
+      setShowCloneModal(false);
       navigate(`/applications/${cloned.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Clone thất bại");
+      setCloneError(err instanceof Error ? err.message : "Clone thất bại");
     } finally {
       setBusy(false);
     }
@@ -156,7 +181,7 @@ export default function ApplicationDetail() {
           <p>{application.description || "Application Docker Compose"}</p>
         </div>
         <div className="actions">
-          <button className="button secondary" disabled={busy} onClick={cloneApp}>Clone</button>
+          <button className="button secondary" disabled={busy} onClick={openCloneModal}>Clone</button>
           <button
             className="button secondary"
             disabled={busy}
@@ -269,6 +294,41 @@ export default function ApplicationDetail() {
         onCancel={() => setRollbackTarget(null)}
         onConfirm={confirmRollback}
       />
+
+      {showCloneModal && (
+        <div className="modal-backdrop">
+          <form className="modal" onSubmit={(event) => { event.preventDefault(); cloneApp(); }}>
+            <p className="eyebrow">SAFE CLONE</p>
+            <h2>Clone "{application.name}"</h2>
+            <p>Chọn host port mới để clone có thể deploy song song với application gốc.</p>
+            {cloneError && <div className="alert error">{cloneError}</div>}
+            <div className="clone-fields">
+              <label>
+                Tên application mới
+                <input value={cloneName} onChange={(event) => setCloneName(event.target.value)} required />
+              </label>
+              {application.services.filter((service) => service.host_port).map((service) => (
+                <label key={service.name}>
+                  Host port mới cho {service.name}
+                  <input
+                    type="number"
+                    min="1"
+                    max="65535"
+                    value={clonePorts[service.name] ?? ""}
+                    placeholder={`Port gốc: ${service.host_port}`}
+                    onChange={(event) => setClonePorts((ports) => ({ ...ports, [service.name]: event.target.value }))}
+                    required
+                  />
+                </label>
+              ))}
+            </div>
+            <div className="actions modal-actions">
+              <button className="button secondary" type="button" disabled={busy} onClick={() => setShowCloneModal(false)}>Hủy</button>
+              <button className="button primary" type="submit" disabled={busy}>{busy ? "Đang clone..." : "Tạo clone"}</button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (

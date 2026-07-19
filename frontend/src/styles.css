@@ -49,7 +49,7 @@ nav a:hover { background: #182233; color: #fff; }
 .primary { background: #705cff; color: white; }
 .secondary { background: #223047; color: #e7edf6; }
 .danger { background: #4c2430; color: #ffb8c5; }
-.actions { display: flex; gap: 10px; align-items: center; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 
 .app-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .app-card { padding: 20px; display: flex; gap: 14px; transition: transform .15s, border-color .15s; }
@@ -135,6 +135,7 @@ th { color: #8896aa; }
 .modal h2 { margin: 4px 0 12px; }
 .modal p:not(.eyebrow) { margin: 0; color: #aab7c8; line-height: 1.55; }
 .modal-actions { justify-content: flex-end; margin-top: 24px; }
+.clone-fields { display: grid; gap: 14px; margin-top: 20px; }
 
 @media (max-width: 1000px) {
   .shell { grid-template-columns: 1fr; }

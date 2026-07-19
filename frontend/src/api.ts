@@ -62,7 +62,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
-  cloneApplication: (id: number, payload: { name: string }) =>
+  cloneApplication: (id: number, payload: { name: string; host_ports: Record<string, number> }) =>
     request<Application>(`/api/applications/${id}/clone`, {
       method: "POST",
       body: JSON.stringify(payload),

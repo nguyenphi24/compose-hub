@@ -109,7 +109,9 @@ http://localhost:8000
 docker compose up --build
 ```
 
-> Backend được mount Docker socket để thao tác với Docker Engine của máy chủ. Chỉ sử dụng trong môi trường tin cậy.
+> **Cảnh báo bảo mật:** Backend được mount Docker socket và vì vậy gần tương đương
+> quyền quản trị toàn bộ Docker host. Không public ComposeHub trực tiếp ra Internet;
+> chỉ mở UI qua `localhost`, VPN hoặc mạng nội bộ tin cậy cho bản v0.1 chưa có auth.
 
 ## Compose Doctor
 
@@ -135,6 +137,19 @@ Doctor là kiểm tra tĩnh cho MVP; chỉ lỗi `Critical` mới chặn deploy.
 6. Bấm **Deploy**, sau đó truy cập ứng dụng.
 7. Xem container, logs và release timeline.
 8. Thay đổi một cấu hình, deploy revision mới rồi rollback về revision ổn định.
+
+## Xác minh v0.1
+
+Smoke test trên Docker Engine 29.6.1 đã xác nhận:
+
+- Nginx thủ công giữ đúng environment variable và named volume; Doctor, Deploy,
+  Status, Logs, HTTP check, revision mới, Rollback và Stop đều thành công.
+- Blueprint n8n + PostgreSQL deploy hai container thành công; PostgreSQL chỉ mở
+  cổng nội bộ và cả database/n8n đều dùng named volume.
+- Blueprint PostgreSQL có public host port bị Doctor đánh dấu `Critical` và API
+  chặn Deploy bằng HTTP 422.
+- Container/network smoke test đã được stop và remove sau khi kiểm tra; named
+  volumes được giữ lại đúng chính sách không tự xóa dữ liệu của v0.1.
 
 ## API chính
 

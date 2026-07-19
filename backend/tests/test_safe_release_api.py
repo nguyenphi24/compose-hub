@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 
 def create_application(client, name: str, *, image: str = "nginx:alpine", host_port: int = 19080):
-    with patch("app.main.port_is_available", return_value=True):
+    with patch("app.port_validation.port_is_available", return_value=True):
         response = client.post(
             "/api/applications",
             json={
