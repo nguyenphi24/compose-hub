@@ -52,7 +52,7 @@ Release gate bắt buộc:
 
 ## v0.3.0 — Distribution Foundation
 
-**Status:** In progress
+**Status:** Verification
 
 ### Scope
 
@@ -64,15 +64,15 @@ Release gate bắt buộc:
 - [x] Cho phép cấu hình install directory, web port và API port.
 - [x] API chỉ bind localhost theo mặc định.
 - [x] UI hỗ trợ Tiếng Việt và English, lưu lựa chọn trên trình duyệt.
-- [ ] Smoke test installer trên máy sạch từ tag release candidate.
-- [ ] Xác minh upgrade từ `v0.2.0` sang release candidate giữ nguyên data.
+- [x] Smoke test installer trên máy sạch từ tag `v0.3.0-rc.4`.
+- [x] Xác minh upgrade từ legacy v0.2 container data sang `v0.3.0-rc.4` giữ nguyên application.
 
 ### Release gate
 
-- [ ] Toàn bộ scope được implement hoặc mục bị loại có quyết định ghi lại.
-- [ ] Backend test suite và frontend build pass.
-- [ ] One-line installer và upgrade được Docker smoke test.
-- [ ] README phản ánh đúng lệnh install, cấu hình và giới hạn bảo mật.
+- [x] Toàn bộ scope được implement hoặc mục bị loại có quyết định ghi lại.
+- [x] Backend test suite (27 tests) và frontend production build pass.
+- [x] One-line installer, reinstall persistence và legacy upgrade được Docker smoke test.
+- [x] README phản ánh đúng lệnh install, cấu hình và giới hạn bảo mật.
 - [ ] Merge `dev → main` và push tag `v0.3.0`.
 
 ## Later versions
