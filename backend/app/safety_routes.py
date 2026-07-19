@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .change_plan_service import build_change_plan
 from .database import get_db
 from .doctor_service import inspect_application
 from .models import Application, ReleaseRevision
@@ -12,7 +13,7 @@ from .release_service import (
     rollback_to_revision,
     serialize_revision,
 )
-from .schemas import DoctorReport, ReleaseRevisionRead
+from .schemas import ChangePlan, DoctorReport, ReleaseRevisionRead
 
 router = APIRouter(tags=["safe-release"])
 
@@ -27,6 +28,13 @@ def _application_or_404(application_id: int, db: Session) -> Application:
 @router.post("/api/applications/{application_id}/doctor", response_model=DoctorReport)
 def run_compose_doctor(application_id: int, db: Session = Depends(get_db)):
     return inspect_application(_application_or_404(application_id, db))
+
+
+@router.get(
+    "/api/applications/{application_id}/change-plan", response_model=ChangePlan
+)
+def get_change_plan(application_id: int, db: Session = Depends(get_db)):
+    return build_change_plan(db, _application_or_404(application_id, db))
 
 
 @router.get(

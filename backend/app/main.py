@@ -16,6 +16,7 @@ from .compose_service import (
     server_info,
     write_compose,
 )
+from .change_plan_service import build_change_plan
 from .database import get_db, initialize_database
 from .doctor_service import inspect_application
 from .models import Application, Service
@@ -28,11 +29,11 @@ from .release_service import (
 )
 from .safety_routes import router as safety_router
 from .template_routes import template_router
-from .schemas import ApplicationCreate, ApplicationRead, ApplicationUpdate
+from .schemas import ApplicationCreate, ApplicationRead, ApplicationUpdate, DeployRequest
 
 initialize_database()
 
-app = FastAPI(title="ComposeHub API", version="0.1.0")
+app = FastAPI(title="ComposeHub API", version="0.2.0")
 app.include_router(template_router)
 app.include_router(safety_router)
 
@@ -116,8 +117,19 @@ def get_compose(application_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/api/applications/{application_id}/deploy")
-def deploy_application(application_id: int, db: Session = Depends(get_db)):
+def deploy_application(
+    application_id: int,
+    payload: DeployRequest | None = None,
+    db: Session = Depends(get_db),
+):
     application = get_application_or_404(application_id, db)
+    if payload and payload.expected_plan_id:
+        current_plan = build_change_plan(db, application)
+        if payload.expected_plan_id != current_plan.plan_id:
+            raise HTTPException(
+                status_code=409,
+                detail="Change Plan đã cũ vì cấu hình hoặc baseline release đã thay đổi. Hãy refresh plan trước khi Deploy.",
+            )
     try:
         validate_host_ports(
             db, application.services, current_application=application

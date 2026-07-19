@@ -35,6 +35,24 @@ Application
 └── worker
 ```
 
+## v0.2 — Change Control
+
+Trước mỗi Deploy, ComposeHub tạo **Change Plan** từ release thành công gần nhất:
+
+- Phát hiện service được thêm, gỡ hoặc cần recreate.
+- So sánh image, public port, domain/URL, environment key, restart policy và volume mount.
+- Đánh dấu `High risk` khi bỏ service/volume hoặc thay public port.
+- Cho biết revision baseline và rollback snapshot có sẵn hay chưa.
+- Không trả giá trị secret lên UI; environment chỉ hiển thị tên key thay đổi.
+- Gắn fingerprint cho plan; backend trả HTTP 409 nếu cấu hình thay đổi sau khi
+  người dùng xem plan nhưng trước khi xác nhận Deploy.
+
+Luồng Deploy v0.2:
+
+```text
+Compose Doctor → Change Plan → xác nhận rủi ro → Deploy → Release snapshot
+```
+
 ## Kiến trúc MVP
 
 ```text

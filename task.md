@@ -1,4 +1,4 @@
-# Solo backlog — ComposeHub v0.1
+# ComposeHub roadmap
 
 ## Mục tiêu gần nhất
 
@@ -45,13 +45,18 @@ Không mở rộng sang multi-server, Git deploy, reverse proxy/SSL, RBAC, backu
 - [x] Bỏ `frontend/tsconfig.tsbuildinfo` khỏi Git tracking; file đã nằm trong `.gitignore`.
 - [x] Tag release `v0.1.0` sau khi toàn bộ P0 pass.
 
-## P1 — Sau v0.1: tạo khác biệt
+## v0.2 — Change Control & Recovery
 
 Doctor và Release là nền tảng, không phải lợi thế duy nhất so với Portainer. Ưu tiên một hướng rõ ràng thay vì thêm Docker resource manager.
 
 ### Change Control & Recovery
 
-- [ ] Change Plan: so sánh Compose đang chạy với cấu hình mới, cho biết service nào recreate, port/domain nào thay đổi, volume nào rủi ro và rollback có sẵn hay không.
+- [x] Change Plan API so sánh release thành công gần nhất với cấu hình mong muốn.
+- [x] Phát hiện add/remove/recreate, image, port, domain/URL, environment key, restart policy và volume thay đổi.
+- [x] Phân loại Low/Medium/High risk, đánh dấu data risk và khả năng rollback.
+- [x] Deploy confirmation UI hiển thị plan trước khi chạy.
+- [x] Stale-plan fingerprint: từ chối Deploy bằng 409 nếu config/baseline đã đổi sau khi lập plan.
+- [x] Không lộ giá trị secret trong Change Plan; chỉ trả tên environment key thay đổi.
 - [ ] Recovery Capsule: export Compose snapshot, image digest, secret references và manifest volume backup để khôi phục application có kiểm soát.
 - [ ] Safe Clone Environment: clone production sang staging/dev với port/domain mới và lựa chọn dữ liệu rỗng/sanitized/restore từ backup.
 
