@@ -1,4 +1,5 @@
 import type { ChangePlan } from "../types";
+import { useI18n } from "../i18n";
 
 type ChangePlanPanelProps = {
   plan: ChangePlan | null;
@@ -9,21 +10,22 @@ type ChangePlanPanelProps = {
 const riskLabel = { low: "Low", medium: "Medium", high: "High" };
 
 export default function ChangePlanPanel({ plan, loading, onRefresh }: ChangePlanPanelProps) {
+  const { t } = useI18n();
   return (
     <section className="card panel change-plan-panel">
       <div className="section-title">
         <div>
           <p className="eyebrow">CHANGE CONTROL</p>
-          <h2>Change Plan</h2>
-          <p>So sánh cấu hình mong muốn với release thành công đang chạy.</p>
+          <h2>{t("plan.title")}</h2>
+          <p>{t("plan.description")}</p>
         </div>
         <button className="button secondary" disabled={loading} onClick={onRefresh}>
-          {loading ? "Đang phân tích..." : "Refresh plan"}
+          {loading ? t("plan.analyzing") : t("plan.refresh")}
         </button>
       </div>
 
       {!plan ? (
-        <p className="muted">Chưa có Change Plan.</p>
+        <p className="muted">{t("plan.empty")}</p>
       ) : (
         <>
           <div className={`change-plan-summary risk-${plan.risk_level}`}>
@@ -31,7 +33,7 @@ export default function ChangePlanPanel({ plan, loading, onRefresh }: ChangePlan
               <span className={`risk-badge ${plan.risk_level}`}>{riskLabel[plan.risk_level]} risk</span>
               <strong>{plan.first_deploy ? "First deploy" : `So với revision #${plan.baseline_revision_id}`}</strong>
             </div>
-            <span>{plan.rollback_available ? "Có rollback snapshot" : "Chưa có rollback snapshot"}</span>
+            <span>{plan.rollback_available ? t("plan.rollbackAvailable") : t("plan.rollbackUnavailable")}</span>
           </div>
           <div className="change-plan-metrics">
             <span><strong>{plan.services_added.length}</strong> add</span>

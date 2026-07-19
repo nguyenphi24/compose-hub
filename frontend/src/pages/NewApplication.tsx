@@ -2,6 +2,7 @@ import { FormEvent, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
 import type { Service } from "../types";
+import { useI18n } from "../i18n";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -203,6 +204,7 @@ interface Template { id: string; name: string; description: string; variables: T
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function NewApplication() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [mode, setMode] = useState<"blueprint" | "manual">("blueprint");
 
@@ -341,9 +343,9 @@ export default function NewApplication() {
     <>
       <header className="page-header">
         <div>
-          <p className="eyebrow">APPLICATION BUILDER</p>
-          <h1>Tạo Application</h1>
-          <p>Khai báo ứng dụng bằng Blueprint hoặc Giao diện thủ công.</p>
+          <p className="eyebrow">{t("app.builder")}</p>
+          <h1>{t("app.newTitle")}</h1>
+          <p>{t("app.newDescription")}</p>
         </div>
       </header>
 
@@ -352,10 +354,10 @@ export default function NewApplication() {
       {/* Tabs */}
       <div style={{ display: "flex", gap: 12, marginBottom: 28, borderBottom: "1px solid #24334a", paddingBottom: 16 }}>
         <button type="button" className={`button ${mode === "blueprint" ? "primary" : "secondary"}`} onClick={() => setMode("blueprint")}>
-          Kho Blueprint
+          {t("app.blueprints")}
         </button>
         <button type="button" className={`button ${mode === "manual" ? "primary" : "secondary"}`} onClick={() => setMode("manual")}>
-          Tự cấu hình (Thủ công)
+          {t("app.manual")}
         </button>
       </div>
 
@@ -364,7 +366,7 @@ export default function NewApplication() {
           <div className="two-columns" style={{ alignItems: "start" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <section className="card form-card">
-                <h2>Thông tin chung</h2>
+                <h2>{t("app.general")}</h2>
                 <div className="form-grid">
                   <label>Tên application<input value={name} onChange={(e) => setName(e.target.value)} required placeholder="demo-blog" /></label>
                   <label>Môi trường
@@ -380,9 +382,9 @@ export default function NewApplication() {
 
               <div>
                 <div className="section-title">
-                  <div><h2>Services</h2><p>Cấu hình image, port, env vars và volume.</p></div>
+                  <div><h2>{t("app.services")}</h2><p>{t("app.servicesDescription")}</p></div>
                   <button type="button" className="button secondary" onClick={() => setServiceStates((p) => [...p, emptyServiceState()])}>
-                    + Thêm service
+                    {t("app.addService")}
                   </button>
                 </div>
                 <div className="service-list">
@@ -397,16 +399,16 @@ export default function NewApplication() {
               </div>
 
               <div className="actions">
-                <button className="button primary" disabled={saving}>{saving ? "Đang tạo..." : "Tạo Application"}</button>
+                <button className="button primary" disabled={saving}>{saving ? t("app.creating") : t("app.create")}</button>
               </div>
             </div>
 
             {/* Manual Compose Preview */}
             <article className="card panel code-panel" style={{ position: "sticky", top: 24 }}>
               <div className="section-title">
-                <div><h2>Xem trước compose.yaml</h2><p>Cập nhật thời gian thực.</p></div>
+                <div><h2>{t("app.preview")}</h2><p>{t("app.realtime")}</p></div>
               </div>
-              <pre style={{ minHeight: 340, margin: 0 }}>{manualPreview || "Nhập thông tin để xem preview..."}</pre>
+              <pre style={{ minHeight: 340, margin: 0 }}>{manualPreview || t("app.previewHint")}</pre>
             </article>
           </div>
         </form>
@@ -414,7 +416,7 @@ export default function NewApplication() {
         /* Blueprint mode */
         <div>
           {loadingTemplates ? (
-            <div className="card" style={{ padding: 20 }}>Đang tải danh sách Blueprint...</div>
+            <div className="card" style={{ padding: 20 }}>{t("app.loadingBlueprints")}</div>
           ) : (
             <>
               <div className="app-grid" style={{ marginBottom: 28 }}>
@@ -438,7 +440,7 @@ export default function NewApplication() {
                   <div className="two-columns">
                     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                       <section className="card form-card">
-                        <h2>Thông tin chung</h2>
+                        <h2>{t("app.general")}</h2>
                         <div className="form-grid">
                           <label>Tên application<input value={name} onChange={(e) => setName(e.target.value)} required placeholder="my-blueprint-app" /></label>
                           <label>Môi trường
@@ -474,17 +476,17 @@ export default function NewApplication() {
                       </section>
 
                       <div className="actions">
-                        <button className="button primary" disabled={saving}>{saving ? "Đang tạo..." : "Tạo từ Blueprint"}</button>
+                        <button className="button primary" disabled={saving}>{saving ? t("app.creating") : t("app.createBlueprint")}</button>
                       </div>
                     </div>
 
                     <article className="card panel code-panel" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
                       <div className="section-title">
-                        <div><h2>Xem trước compose.yaml</h2><p>Cập nhật thời gian thực.</p></div>
+                        <div><h2>{t("app.preview")}</h2><p>{t("app.realtime")}</p></div>
                       </div>
                       {previewError
                         ? <div className="alert error" style={{ flex: 1 }}>{previewError}</div>
-                        : <pre style={{ flex: 1, margin: 0, minHeight: 380 }}>{previewCompose || "Đang tải preview..."}</pre>
+                        : <pre style={{ flex: 1, margin: 0, minHeight: 380 }}>{previewCompose || t("app.loadingPreview")}</pre>
                       }
                     </article>
                   </div>

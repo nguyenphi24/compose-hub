@@ -13,8 +13,10 @@ import type {
   DoctorReport as DoctorReportData,
   ReleaseRevision,
 } from "../types";
+import { useI18n } from "../i18n";
 
 export default function ApplicationDetail() {
+  const { t } = useI18n();
   const { id } = useParams();
   const navigate = useNavigate();
   const appId = Number(id);
@@ -219,7 +221,7 @@ export default function ApplicationDetail() {
   };
 
   if (!application) {
-    return <div className="card">Đang tải...</div>;
+    return <div className="card">{t("dashboard.loading")}</div>;
   }
 
   return (
@@ -238,18 +240,18 @@ export default function ApplicationDetail() {
             disabled={busy}
             onClick={() => navigate(`/applications/${appId}/edit`)}
           >
-            ✏ Chỉnh sửa
+            {t("detail.edit")}
           </button>
           <button
             className="button danger"
             disabled={busy}
             onClick={() => setShowDeleteModal(true)}
           >
-            🗑 Xóa
+            {t("detail.delete")}
           </button>
           <button className="button secondary" disabled={busy} onClick={stopApplication}>Stop</button>
           <button className="button primary" disabled={busy || doctorLoading || planLoading || Boolean(doctor && !doctor.can_deploy)} onClick={prepareDeploy}>
-            {planLoading ? "Đang lập plan..." : "Deploy"}
+            {planLoading ? t("detail.planning") : "Deploy"}
           </button>
         </div>
       </header>
@@ -261,17 +263,17 @@ export default function ApplicationDetail() {
         <article className="card stat">
           <span>Services</span>
           <strong>{application.services.length}</strong>
-          <small>được khai báo</small>
+          <small>{t("detail.declared")}</small>
         </article>
         <article className="card stat">
           <span>Containers</span>
           <strong>{containers.length}</strong>
-          <small>được phát hiện</small>
+          <small>{t("detail.detected")}</small>
         </article>
         <article className="card stat">
-          <span>Trạng thái</span>
+          <span>{t("detail.status")}</span>
           <strong>{containers.some((c) => c.status === "running") ? "Running" : "Stopped"}</strong>
-          <small>theo Docker Engine</small>
+          <small>{t("detail.dockerStatus")}</small>
         </article>
       </section>
 
@@ -288,12 +290,12 @@ export default function ApplicationDetail() {
           <div className="section-title">
             <div>
               <h2>Containers</h2>
-              <p>Trạng thái hiện tại.</p>
+              <p>{t("detail.currentStatus")}</p>
             </div>
             <button className="button secondary" onClick={refresh}>Refresh</button>
           </div>
           {containers.length === 0 ? (
-            <p>Chưa deploy application.</p>
+            <p>{t("detail.notDeployed")}</p>
           ) : (
             <table>
               <thead><tr><th>Name</th><th>Image</th><th>Status</th></tr></thead>
@@ -320,7 +322,7 @@ export default function ApplicationDetail() {
                 <small>
                   {service.host_port && service.container_port
                     ? `${service.host_port}:${service.container_port}`
-                    : "Không public port"}
+                    : t("detail.noPublicPort")}
                 </small>
               </div>
             ))}

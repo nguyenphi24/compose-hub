@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
 import type { Application, ServerInfo } from "../types";
+import { useI18n } from "../i18n";
 
 function formatBytes(value?: number) {
   if (!value) return "-";
@@ -9,6 +10,7 @@ function formatBytes(value?: number) {
 }
 
 export default function Dashboard() {
+  const { t } = useI18n();
   const [server, setServer] = useState<ServerInfo | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [error, setError] = useState("");
@@ -26,12 +28,12 @@ export default function Dashboard() {
     <>
       <header className="page-header">
         <div>
-          <p className="eyebrow">SINGLE HOST MVP</p>
-          <h1>Dashboard</h1>
-          <p>Quản lý application Docker Compose mà không cần SSH.</p>
+          <p className="eyebrow">{t("dashboard.eyebrow")}</p>
+          <h1>{t("dashboard.title")}</h1>
+          <p>{t("dashboard.subtitle")}</p>
         </div>
         <Link className="button primary" to="/applications/new">
-          + Tạo Application
+          {t("dashboard.create")}
         </Link>
       </header>
 
@@ -39,22 +41,22 @@ export default function Dashboard() {
 
       <section className="stats-grid">
         <article className="card stat">
-          <span>Docker host</span>
-          <strong>{server?.online ? "Online" : "Offline"}</strong>
-          <small>{server?.name || server?.error || "Đang tải..."}</small>
+          <span>{t("dashboard.dockerHost")}</span>
+          <strong>{server?.online ? t("dashboard.online") : t("dashboard.offline")}</strong>
+          <small>{server?.name || server?.error || t("dashboard.loading")}</small>
         </article>
         <article className="card stat">
-          <span>Containers</span>
+          <span>{t("dashboard.containers")}</span>
           <strong>{server?.containers_running ?? "-"}</strong>
-          <small>{server?.containers ?? "-"} tổng container</small>
+          <small>{t("dashboard.totalContainers", { count: server?.containers ?? "-" })}</small>
         </article>
         <article className="card stat">
-          <span>Applications</span>
+          <span>{t("dashboard.applications")}</span>
           <strong>{applications.length}</strong>
-          <small>được quản lý bởi ComposeHub</small>
+          <small>{t("dashboard.managed")}</small>
         </article>
         <article className="card stat">
-          <span>Tài nguyên</span>
+          <span>{t("dashboard.resources")}</span>
           <strong>{server?.cpus ?? "-"} CPU</strong>
           <small>{formatBytes(server?.memory_bytes)} RAM</small>
         </article>
@@ -63,17 +65,17 @@ export default function Dashboard() {
       <section className="section">
         <div className="section-title">
           <div>
-            <h2>Applications</h2>
-            <p>Mỗi application bao gồm nhiều service liên quan.</p>
+            <h2>{t("dashboard.applications")}</h2>
+            <p>{t("dashboard.sectionDescription")}</p>
           </div>
         </div>
 
         {applications.length === 0 ? (
           <div className="card empty">
-            <h3>Chưa có application</h3>
-            <p>Tạo application đầu tiên để bắt đầu demo.</p>
+            <h3>{t("dashboard.emptyTitle")}</h3>
+            <p>{t("dashboard.emptyDescription")}</p>
             <Link className="button primary" to="/applications/new">
-              Tạo ngay
+              {t("dashboard.createNow")}
             </Link>
           </div>
         ) : (
@@ -83,9 +85,9 @@ export default function Dashboard() {
                 <div className="app-icon">{app.name.slice(0, 1).toUpperCase()}</div>
                 <div>
                   <h3>{app.name}</h3>
-                  <p>{app.description || "Không có mô tả"}</p>
+                  <p>{app.description || t("dashboard.noDescription")}</p>
                   <small>
-                    {app.services.length} service · {app.environment}
+                    {t("dashboard.serviceCount", { count: app.services.length, environment: app.environment })}
                   </small>
                 </div>
               </Link>

@@ -24,7 +24,9 @@ button, input, select, textarea { font: inherit; }
 nav { display: flex; flex-direction: column; gap: 8px; }
 nav a { padding: 11px 12px; border-radius: 10px; color: #aab6c8; }
 nav a:hover { background: #182233; color: #fff; }
-.sidebar-note { margin-top: auto; color: #6f7d91; font-size: 12px; line-height: 1.6; }
+.sidebar-note { color: #6f7d91; font-size: 12px; line-height: 1.6; }
+.language-switcher { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 16px; color: #b5c0d0; font-size: 12px; }
+.language-switcher select { width: auto; min-width: 68px; padding: 7px 9px; }
 
 .content { padding: 38px; max-width: 1500px; width: 100%; margin: 0 auto; }
 .page-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; margin-bottom: 28px; }

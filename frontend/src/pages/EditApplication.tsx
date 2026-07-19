@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api";
 import type { Service } from "../types";
+import { useI18n } from "../i18n";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -248,6 +249,7 @@ function ServiceEditor({
 // ── Main page component ───────────────────────────────────────────────────────
 
 export default function EditApplication() {
+  const { t } = useI18n();
   const { id } = useParams();
   const navigate = useNavigate();
   const appId = Number(id);
@@ -369,7 +371,7 @@ export default function EditApplication() {
     }
   };
 
-  if (loading) return <div className="card" style={{ padding: 20 }}>Đang tải...</div>;
+  if (loading) return <div className="card" style={{ padding: 20 }}>{t("dashboard.loading")}</div>;
 
   return (
     <>
@@ -381,11 +383,11 @@ export default function EditApplication() {
             onClick={() => navigate(`/applications/${appId}`)}
             style={{ background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: 16, display: "block" }}
           >
-            ← Quay lại
+            {t("app.back")}
           </button>
-          <p className="eyebrow">APPLICATION BUILDER</p>
-          <h1>Chỉnh sửa Application</h1>
-          <p>Cập nhật cấu hình dịch vụ. Sau khi lưu, deploy để áp dụng thay đổi.</p>
+          <p className="eyebrow">{t("app.builder")}</p>
+          <h1>{t("app.editTitle")}</h1>
+          <p>{t("app.editDescription")}</p>
         </div>
       </header>
 
@@ -396,7 +398,7 @@ export default function EditApplication() {
           {/* Left: Form */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <section className="card form-card">
-              <h2>Thông tin chung</h2>
+              <h2>{t("app.general")}</h2>
               <div className="form-grid">
                 <label>
                   Tên application
@@ -420,10 +422,10 @@ export default function EditApplication() {
             <div>
               <div className="section-title">
                 <div>
-                  <h2>Services</h2>
-                  <p>Cấu hình image, port, env vars và volume mounts.</p>
+                  <h2>{t("app.services")}</h2>
+                  <p>{t("app.servicesDescription")}</p>
                 </div>
-                <button type="button" className="button secondary" onClick={addService}>+ Thêm service</button>
+                <button type="button" className="button secondary" onClick={addService}>{t("app.addService")}</button>
               </div>
               <div className="service-list">
                 {serviceStates.map((svc, index) => (
@@ -441,10 +443,10 @@ export default function EditApplication() {
 
             <div className="actions">
               <button className="button primary" disabled={saving}>
-                {saving ? "Đang lưu..." : "Lưu thay đổi"}
+                {saving ? t("app.saving") : t("app.save")}
               </button>
               <button type="button" className="button secondary" onClick={() => navigate(`/applications/${appId}`)}>
-                Hủy
+                {t("common.cancel")}
               </button>
             </div>
           </div>
@@ -453,8 +455,8 @@ export default function EditApplication() {
           <article className="card panel code-panel" style={{ position: "sticky", top: 24 }}>
             <div className="section-title">
               <div>
-                <h2>Xem trước compose.yaml</h2>
-                <p>Cập nhật thời gian thực khi bạn chỉnh sửa.</p>
+                <h2>{t("app.preview")}</h2>
+                <p>{t("app.realtime")}</p>
               </div>
             </div>
             {previewError

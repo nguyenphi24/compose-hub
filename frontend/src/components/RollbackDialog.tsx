@@ -1,4 +1,5 @@
 import type { ReleaseRevision } from "../types";
+import { useI18n } from "../i18n";
 
 type RollbackDialogProps = {
   revision: ReleaseRevision | null;
@@ -8,6 +9,7 @@ type RollbackDialogProps = {
 };
 
 export default function RollbackDialog({ revision, busy, onCancel, onConfirm }: RollbackDialogProps) {
+  const { t } = useI18n();
   if (!revision) return null;
 
   return (
@@ -19,9 +21,9 @@ export default function RollbackDialog({ revision, busy, onCancel, onConfirm }: 
           ComposeHub sẽ deploy Compose snapshot đã lưu của revision này. Cấu hình application hiện tại sẽ được giữ lại như một revision rollback mới.
         </p>
         <div className="actions modal-actions">
-          <button className="button secondary" disabled={busy} onClick={onCancel}>Hủy</button>
+          <button className="button secondary" disabled={busy} onClick={onCancel}>{t("common.cancel")}</button>
           <button className="button danger" disabled={busy} onClick={onConfirm}>
-            {busy ? "Đang rollback..." : "Xác nhận rollback"}
+            {busy ? t("rollback.rollingBack") : t("rollback.confirm")}
           </button>
         </div>
       </section>

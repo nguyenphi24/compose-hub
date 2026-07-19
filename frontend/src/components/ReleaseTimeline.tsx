@@ -1,4 +1,5 @@
 import type { ReleaseRevision } from "../types";
+import { useI18n } from "../i18n";
 
 type ReleaseTimelineProps = {
   revisions: ReleaseRevision[];
@@ -6,26 +7,27 @@ type ReleaseTimelineProps = {
   onRollback: (revision: ReleaseRevision) => void;
 };
 
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat("vi-VN", {
+function formatTime(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "short",
     timeStyle: "short",
   }).format(new Date(value));
 }
 
 export default function ReleaseTimeline({ revisions, busy, onRollback }: ReleaseTimelineProps) {
+  const { language, t } = useI18n();
   return (
     <section className="card panel release-panel">
       <div className="section-title">
         <div>
           <p className="eyebrow">IMMUTABLE SNAPSHOTS</p>
-          <h2>Release Timeline</h2>
-          <p>Mỗi deploy lưu Compose snapshot để rollback không phụ thuộc UI hiện tại.</p>
+          <h2>{t("release.title")}</h2>
+          <p>{t("release.description")}</p>
         </div>
       </div>
 
       {revisions.length === 0 ? (
-        <p className="muted">Chưa có release. Deploy lần đầu để tạo snapshot.</p>
+        <p className="muted">{t("release.empty")}</p>
       ) : (
         <div className="timeline">
           {revisions.map((revision) => (
@@ -35,7 +37,7 @@ export default function ReleaseTimeline({ revisions, busy, onRollback }: Release
                 <div className="timeline-heading">
                   <div>
                     <strong>#{revision.id} · {revision.action === "rollback" ? "Rollback" : "Deploy"}</strong>
-                    <small>{formatTime(revision.created_at)}</small>
+                    <small>{formatTime(revision.created_at, language === "vi" ? "vi-VN" : "en-US")}</small>
                   </div>
                   <span className={`release-status ${revision.status}`}>{revision.status}</span>
                 </div>

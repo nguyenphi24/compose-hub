@@ -1,4 +1,5 @@
 import type { DoctorReport as DoctorReportData } from "../types";
+import { useI18n } from "../i18n";
 
 type DoctorReportProps = {
   report: DoctorReportData | null;
@@ -13,21 +14,22 @@ const label = {
 };
 
 export default function DoctorReport({ report, loading, onRun }: DoctorReportProps) {
+  const { t } = useI18n();
   return (
     <section className="card panel doctor-panel">
       <div className="section-title">
         <div>
           <p className="eyebrow">SAFE RELEASE</p>
-          <h2>Compose Doctor</h2>
-          <p>Kiểm tra rủi ro trước khi deploy. Lỗi Critical sẽ chặn release.</p>
+          <h2>{t("doctor.title")}</h2>
+          <p>{t("doctor.description")}</p>
         </div>
         <button className="button secondary" disabled={loading} onClick={onRun}>
-          {loading ? "Đang kiểm tra..." : "Chạy kiểm tra"}
+          {loading ? t("doctor.checking") : t("doctor.run")}
         </button>
       </div>
 
       {!report ? (
-        <p className="muted">Chưa có báo cáo. Chạy kiểm tra để xem deployment plan.</p>
+        <p className="muted">{t("doctor.empty")}</p>
       ) : (
         <>
           <div className={`doctor-summary ${report.can_deploy ? "safe" : "blocked"}`}>
