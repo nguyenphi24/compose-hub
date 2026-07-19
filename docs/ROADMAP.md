@@ -21,26 +21,31 @@ future release starts only after the active release passes its gate in
 
 ## Next
 
-### v0.3.0 — Recovery Capsule
+### v0.3.0 — Distribution Foundation
 
-- Export a portable recovery manifest for the active release.
-- Compose snapshot, image digests and secret references.
-- Volume inventory with explicit backup coverage status.
-- Capsule integrity validation.
+- One-command installer from GitHub Releases.
+- Version-pinned installation and data-preserving upgrades.
+- Configurable installation directory and ports.
+- Vietnamese and English UI.
 
 ## Later
 
-### v0.4.0 — Safe Clone Environment
+### v0.4.0 — Recovery Capsule
+
+- Portable recovery manifest for the active release.
+- Compose snapshot, image digests and secret references.
+- Volume inventory and capsule integrity validation.
+
+### v0.5.0 — Safe Clone Environment
 
 - Port and domain remapping.
 - Empty, sanitized or restored data modes.
 - Production-to-staging safety checks.
 
-### v0.5.0 — Distribution
+### Later — Published Images
 
 - Published multi-architecture container images.
-- One-command installer.
-- Version-pinned update and rollback commands.
+- Update and rollback commands that do not require a local image build.
 
 Authentication/RBAC, multi-server management, Git integration and networking
 automation remain unversioned until the preceding recovery and distribution

@@ -74,6 +74,29 @@ FastAPI + SQLite
 
 ### Run with Docker Compose
 
+Install the latest release with one command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tpcodelabs/composehub/main/install.sh | sh
+```
+
+Then open `http://localhost:5173`. Running the same command again upgrades to
+the latest release while preserving data in `~/.composehub/data`.
+
+Optional configuration:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/tpcodelabs/composehub/main/install.sh | \
+  COMPOSEHUB_PORT=8080 COMPOSEHUB_VERSION=v0.2.0 sh
+```
+
+`COMPOSEHUB_HOME` changes the installation directory, `COMPOSEHUB_PORT` changes
+the web port, `COMPOSEHUB_API_PORT` changes the localhost-only API port, and
+`COMPOSEHUB_VERSION` pins a release tag. Review `install.sh` before piping it to
+a shell when using this on a production host.
+
+For a source checkout instead:
+
 ```bash
 git clone https://github.com/tpcodelabs/composehub.git
 cd composehub

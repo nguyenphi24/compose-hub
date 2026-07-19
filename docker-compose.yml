@@ -1,12 +1,14 @@
+name: composehub
+
 services:
   backend:
     build: ./backend
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./data:/app/data
+      - ${COMPOSEHUB_DATA_PATH:-./data}:/app/data
     ports:
-      - "8000:8000"
+      - "127.0.0.1:${COMPOSEHUB_API_PORT:-8000}:8000"
 
   frontend:
     build: ./frontend
@@ -14,4 +16,4 @@ services:
     depends_on:
       - backend
     ports:
-      - "5173:80"
+      - "${COMPOSEHUB_PORT:-5173}:80"

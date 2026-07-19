@@ -50,37 +50,38 @@ Release gate bắt buộc:
 - [x] 27 backend tests và frontend production build pass.
 - [x] Tag `v0.2.0`.
 
-## v0.3.0 — Recovery Capsule
+## v0.3.0 — Distribution Foundation
 
-**Status:** Planned
+**Status:** In progress
 
-Version này chỉ chuyển sang **In progress** sau khi scope dưới đây được xác nhận.
+### Scope
 
-### Proposed scope
-
-- [ ] Export capsule từ release thành công đang active.
-- [ ] Capsule chứa Compose snapshot, application metadata và baseline revision.
-- [ ] Resolve image digest khi Docker host có image; fallback rõ ràng khi chưa pull.
-- [ ] Chỉ export secret references/key names, không export secret values.
-- [ ] Volume manifest nêu named/bind mount và trạng thái dữ liệu chưa được backup.
-- [ ] Download capsule JSON từ UI.
-- [ ] Validate capsule schema và checksum khi import/inspect.
-- [ ] Tests xác nhận capsule không làm lộ credential.
+- [x] Installer chạy bằng một lệnh `curl | sh`.
+- [x] Tự resolve GitHub release mới nhất hoặc pin bằng `COMPOSEHUB_VERSION`.
+- [x] Kiểm tra Docker Engine và Docker Compose v2 trước khi cài.
+- [x] Tách source theo version và giữ application data trong thư mục dùng chung.
+- [x] Chạy lại installer để upgrade mà không xóa data.
+- [x] Cho phép cấu hình install directory, web port và API port.
+- [x] API chỉ bind localhost theo mặc định.
+- [x] UI hỗ trợ Tiếng Việt và English, lưu lựa chọn trên trình duyệt.
+- [ ] Smoke test installer trên máy sạch từ tag release candidate.
+- [ ] Xác minh upgrade từ `v0.2.0` sang release candidate giữ nguyên data.
 
 ### Release gate
 
-- [ ] Toàn bộ proposed scope được implement hoặc mục bị loại có quyết định ghi lại.
+- [ ] Toàn bộ scope được implement hoặc mục bị loại có quyết định ghi lại.
 - [ ] Backend test suite và frontend build pass.
-- [ ] Export capsule được smoke test trên application đã deploy.
-- [ ] README cập nhật giới hạn: capsule metadata chưa đồng nghĩa volume backup hoàn chỉnh.
+- [ ] One-line installer và upgrade được Docker smoke test.
+- [ ] README phản ánh đúng lệnh install, cấu hình và giới hạn bảo mật.
 - [ ] Merge `dev → main` và push tag `v0.3.0`.
 
 ## Later versions
 
 Chưa mở implementation cho đến khi `v0.3.0` Released.
 
-- **v0.4.0 — Safe Clone Environment:** port/domain remap và data mode có kiểm soát.
-- **v0.5.0 — One-command Installation:** published images, installer và update command.
+- **v0.4.0 — Recovery Capsule:** manifest phục hồi, image digest, secret references và volume inventory.
+- **v0.5.0 — Safe Clone Environment:** port/domain remap và data mode có kiểm soát.
+- **Later — Published Images:** multi-architecture images và update/rollback command không cần local build.
 - Authentication/RBAC phải có trước Container Console hoặc public deployment.
 
 ## Product rules
