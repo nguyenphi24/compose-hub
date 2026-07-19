@@ -17,13 +17,24 @@ from .compose_service import (
     server_info,
     write_compose,
 )
-from .database import Base, engine, get_db
+from .database import get_db, initialize_database
+from .doctor_service import inspect_application
 from .models import Application, Service
-from .schemas import ApplicationCreate, ApplicationRead
+from .release_service import (
+    DeploymentInProgressError,
+    create_revision,
+    deploy_with_revision,
+    serialize_revision,
+)
+from .safety_routes import router as safety_router
+from .template_routes import template_router
+from .schemas import ApplicationCreate, ApplicationRead, ApplicationUpdate
 
-Base.metadata.create_all(bind=engine)
+initialize_database()
 
 app = FastAPI(title="ComposeHub API", version="0.1.0")
+app.include_router(template_router)
+app.include_router(safety_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -113,22 +124,30 @@ def get_compose(application_id: int, db: Session = Depends(get_db)):
 @app.post("/api/applications/{application_id}/deploy")
 def deploy_application(application_id: int, db: Session = Depends(get_db)):
     application = get_application_or_404(application_id, db)
-
-    for service in application.services:
-        if service.host_port and not port_is_available(service.host_port):
-            current = application_status(application)
-            already_owned = any(
-                container.get("status") in {"running", "created", "restarting"} for container in current
-            )
-            if not already_owned:
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Port {service.host_port} đang được sử dụng.",
-                )
-
+    report = inspect_application(application)
+    if not report.can_deploy:
+        create_revision(
+            db,
+            application,
+            action="deploy",
+            status="blocked",
+            compose_yaml=compose_text(application),
+            doctor_report=report,
+        )
+        db.commit()
+        raise HTTPException(
+            status_code=422,
+            detail="Deploy bị chặn bởi Compose Doctor. Hãy xử lý các lỗi Critical trước.",
+        )
     try:
-        output = run_compose(application, ["up", "-d"])
-        return {"status": "deployed", "output": output}
+        revision, output = deploy_with_revision(db, application, report)
+        return {
+            "status": "deployed",
+            "output": output,
+            "revision": serialize_revision(revision).model_dump(mode="json"),
+        }
+    except DeploymentInProgressError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -159,3 +178,71 @@ def get_application_logs(application_id: int, db: Session = Depends(get_db)):
         return {"logs": application_logs(application)}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@app.patch("/api/applications/{application_id}", response_model=ApplicationRead)
+def update_application(application_id: int, payload: ApplicationUpdate, db: Session = Depends(get_db)):
+    application = get_application_or_404(application_id, db)
+    if payload.name is not None:
+        # Check duplicate name
+        if payload.name != application.name:
+            existing = db.scalars(select(Application).where(Application.name == payload.name)).first()
+            if existing:
+                raise HTTPException(status_code=409, detail="Tên application đã tồn tại.")
+        application.name = payload.name
+    if payload.environment is not None:
+        application.environment = payload.environment
+    if payload.description is not None:
+        application.description = payload.description
+    if payload.services is not None:
+        # Validate ports
+        requested_ports = [s.host_port for s in payload.services if s.host_port]
+        if len(requested_ports) != len(set(requested_ports)):
+            raise HTTPException(status_code=400, detail="Có host port bị trùng trong application.")
+        for port in requested_ports:
+            # Allow ports already owned by this application
+            owned = any(svc.host_port == port for svc in application.services)
+            if not owned and not port_is_available(port):
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"Port {port} đang được sử dụng trên Docker host.",
+                )
+        # Replace services
+        for svc in list(application.services):
+            db.delete(svc)
+        db.flush()
+        for item in payload.services:
+            application.services.append(
+                Service(
+                    name=item.name,
+                    image=item.image,
+                    container_port=item.container_port,
+                    host_port=item.host_port,
+                    restart_policy=item.restart_policy,
+                    environment_json=json.dumps(item.environment),
+                    volumes_json=json.dumps([volume.model_dump() for volume in item.volumes]),
+                )
+            )
+    # Reset active_compose_yaml so next deploy uses updated services
+    application.active_compose_yaml = None
+    db.commit()
+    db.refresh(application)
+    write_compose(application)
+    return application
+
+
+@app.delete("/api/applications/{application_id}", status_code=204)
+def delete_application(application_id: int, db: Session = Depends(get_db)):
+    import shutil
+    from .compose_service import get_app_dir
+    application = get_application_or_404(application_id, db)
+    # Remove compose directory (does NOT delete Docker volumes)
+    try:
+        app_dir = get_app_dir(application)
+        if app_dir.exists():
+            shutil.rmtree(app_dir)
+    except Exception:
+        pass
+    db.delete(application)
+    db.commit()
+    return None

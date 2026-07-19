@@ -92,14 +92,60 @@ th { color: #8896aa; }
 .alert { padding: 13px 15px; border-radius: 10px; margin-bottom: 18px; white-space: pre-wrap; }
 .alert.error { background: #41212a; color: #ffb7c4; border: 1px solid #693442; }
 .alert.success { background: #17392f; color: #8be0c6; border: 1px solid #285b4c; }
+.muted { color: #8290a4; }
+
+.doctor-panel, .release-panel { padding: 22px; }
+.doctor-summary {
+  display: flex; justify-content: space-between; gap: 16px; align-items: center;
+  padding: 14px 16px; border-radius: 12px; margin: 18px 0;
+}
+.doctor-summary.safe { background: #17392f; color: #9ce7d0; border: 1px solid #285b4c; }
+.doctor-summary.blocked { background: #41212a; color: #ffc0ca; border: 1px solid #693442; }
+.doctor-summary span { font-size: 13px; }
+.doctor-issues { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.doctor-issue { padding: 14px; border-radius: 12px; background: #0d1520; border: 1px solid #24334a; }
+.doctor-issue.critical { border-color: #844150; }
+.doctor-issue.warning { border-color: #7c6331; }
+.doctor-issue.info { border-color: #314c70; }
+.doctor-issue p { color: #a5b1c2; line-height: 1.45; font-size: 13px; margin: 8px 0; }
+.doctor-issue small { color: #8392a8; line-height: 1.4; }
+.issue-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+.severity, .release-status { display: inline-flex; align-items: center; width: fit-content; border-radius: 999px; padding: 4px 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.severity.critical, .release-status.failed, .release-status.blocked { background: #4c2430; color: #ffb8c5; }
+.severity.warning { background: #4a3b20; color: #ffd78b; }
+.severity.info, .release-status.pending { background: #263a57; color: #b8d3ff; }
+.release-status.success { background: #173c35; color: #66e0bf; }
+
+.timeline { display: flex; flex-direction: column; gap: 0; }
+.timeline-item { display: grid; grid-template-columns: 20px 1fr; gap: 12px; position: relative; padding: 0 0 20px; }
+.timeline-item:not(:last-child)::before { content: ""; position: absolute; left: 8px; top: 18px; bottom: 0; width: 2px; background: #28374d; }
+.timeline-dot { width: 12px; height: 12px; border-radius: 50%; background: #61728b; margin-top: 6px; z-index: 1; }
+.timeline-dot.success { background: #56d7b3; box-shadow: 0 0 0 4px #173c35; }
+.timeline-dot.failed, .timeline-dot.blocked { background: #ff778d; box-shadow: 0 0 0 4px #4c2430; }
+.timeline-dot.pending { background: #9ec5ff; box-shadow: 0 0 0 4px #263a57; }
+.timeline-content { padding: 14px; border-radius: 12px; background: #0d1520; border: 1px solid #24334a; }
+.timeline-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.timeline-heading > div { display: flex; flex-direction: column; gap: 4px; }
+.timeline-heading small, .timeline-content p { color: #8392a8; font-size: 13px; margin: 8px 0 0; }
+.release-output { margin: 12px 0; padding: 10px; max-height: 120px; overflow: auto; border-radius: 8px; background: #080d14; color: #b9c8db; font-size: 12px; white-space: pre-wrap; }
+.compact { padding: 7px 10px; font-size: 12px; }
+
+.modal-backdrop { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 20px; background: rgb(4 8 14 / .72); }
+.modal { width: min(520px, 100%); padding: 24px; border-radius: 16px; background: #121b29; border: 1px solid #354a68; box-shadow: 0 24px 64px rgb(0 0 0 / .4); }
+.modal h2 { margin: 4px 0 12px; }
+.modal p:not(.eyebrow) { margin: 0; color: #aab7c8; line-height: 1.55; }
+.modal-actions { justify-content: flex-end; margin-top: 24px; }
 
 @media (max-width: 1000px) {
   .shell { grid-template-columns: 1fr; }
   .sidebar { position: static; height: auto; }
   .stats-grid, .app-grid, .two-columns { grid-template-columns: 1fr 1fr; }
+  .doctor-issues { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 700px) {
   .content { padding: 22px; }
   .page-header { flex-direction: column; }
   .stats-grid, .app-grid, .two-columns, .form-grid { grid-template-columns: 1fr; }
+  .doctor-issues { grid-template-columns: 1fr; }
+  .doctor-summary { align-items: flex-start; flex-direction: column; }
 }

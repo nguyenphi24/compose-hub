@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/api.ts","./src/main.tsx","./src/types.ts","./src/components/DoctorReport.tsx","./src/components/ReleaseTimeline.tsx","./src/components/RollbackDialog.tsx","./src/pages/ApplicationDetail.tsx","./src/pages/Dashboard.tsx","./src/pages/EditApplication.tsx","./src/pages/NewApplication.tsx"],"version":"5.7.3"}

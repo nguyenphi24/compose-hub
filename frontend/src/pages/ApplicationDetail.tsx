@@ -1,31 +1,50 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { api } from "../api";
-import type { Application, ContainerStatus } from "../types";
+import DoctorReport from "../components/DoctorReport";
+import ReleaseTimeline from "../components/ReleaseTimeline";
+import RollbackDialog from "../components/RollbackDialog";
+import type {
+  Application,
+  ContainerStatus,
+  DoctorReport as DoctorReportData,
+  ReleaseRevision,
+} from "../types";
 
 export default function ApplicationDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const appId = Number(id);
   const [application, setApplication] = useState<Application | null>(null);
   const [compose, setCompose] = useState("");
   const [containers, setContainers] = useState<ContainerStatus[]>([]);
   const [logs, setLogs] = useState("");
+  const [doctor, setDoctor] = useState<DoctorReportData | null>(null);
+  const [revisions, setRevisions] = useState<ReleaseRevision[]>([]);
+  const [doctorLoading, setDoctorLoading] = useState(false);
+  const [rollbackTarget, setRollbackTarget] = useState<ReleaseRevision | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
-      const [appData, composeData, statusData, logData] = await Promise.all([
+      const [appData, composeData, statusData, logData, doctorData, revisionData] = await Promise.all([
         api.application(appId),
         api.compose(appId),
         api.status(appId),
         api.logs(appId),
+        api.doctor(appId),
+        api.revisions(appId),
       ]);
       setApplication(appData);
       setCompose(composeData.compose);
       setContainers(statusData.containers);
       setLogs(logData.logs);
+      setDoctor(doctorData);
+      setRevisions(revisionData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Không thể tải dữ liệu");
     }
@@ -35,11 +54,31 @@ export default function ApplicationDetail() {
     refresh();
   }, [refresh]);
 
+  const runDoctor = async () => {
+    setDoctorLoading(true);
+    setError("");
+    try {
+      setDoctor(await api.doctor(appId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể chạy Compose Doctor");
+    } finally {
+      setDoctorLoading(false);
+    }
+  };
+
   const action = async (type: "deploy" | "stop") => {
     setBusy(true);
     setError("");
     setMessage("");
     try {
+      if (type === "deploy") {
+        const freshDoctor = await api.doctor(appId);
+        setDoctor(freshDoctor);
+        if (!freshDoctor.can_deploy) {
+          setError("Deploy bị chặn. Hãy xử lý các lỗi Critical trong Compose Doctor.");
+          return;
+        }
+      }
       const result = type === "deploy" ? await api.deploy(appId) : await api.stop(appId);
       setMessage(result.output || result.status);
       await refresh();
@@ -47,6 +86,59 @@ export default function ApplicationDetail() {
       setError(err instanceof Error ? err.message : "Thao tác thất bại");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const confirmRollback = async () => {
+    if (!rollbackTarget) return;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const result = await api.rollback(appId, rollbackTarget.id);
+      setMessage(`Đã rollback về revision #${rollbackTarget.id}. Release rollback #${result.id} đã được lưu.`);
+      setRollbackTarget(null);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Rollback thất bại");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cloneApp = async () => {
+    if (!application) return;
+    const newName = prompt("Nhập tên cho application mới:", `${application.name}-copy`);
+    if (!newName) return;
+    const cleanName = newName.trim().toLowerCase().replace(/\s+/g, "-");
+    if (!cleanName) {
+      alert("Tên không hợp lệ");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const cloned = await api.cloneApplication(appId, { name: cleanName });
+      setMessage("Clone thành công!");
+      navigate(`/applications/${cloned.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Clone thất bại");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setError("");
+    try {
+      await api.deleteApplication(appId);
+      navigate("/");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Xóa application thất bại");
+      setDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -64,8 +156,23 @@ export default function ApplicationDetail() {
           <p>{application.description || "Application Docker Compose"}</p>
         </div>
         <div className="actions">
+          <button className="button secondary" disabled={busy} onClick={cloneApp}>Clone</button>
+          <button
+            className="button secondary"
+            disabled={busy}
+            onClick={() => navigate(`/applications/${appId}/edit`)}
+          >
+            ✏ Chỉnh sửa
+          </button>
+          <button
+            className="button danger"
+            disabled={busy}
+            onClick={() => setShowDeleteModal(true)}
+          >
+            🗑 Xóa
+          </button>
           <button className="button secondary" disabled={busy} onClick={() => action("stop")}>Stop</button>
-          <button className="button primary" disabled={busy} onClick={() => action("deploy")}>
+          <button className="button primary" disabled={busy || doctorLoading || Boolean(doctor && !doctor.can_deploy)} onClick={() => action("deploy")}>
             {busy ? "Đang xử lý..." : "Deploy"}
           </button>
         </div>
@@ -90,6 +197,10 @@ export default function ApplicationDetail() {
           <strong>{containers.some((c) => c.status === "running") ? "Running" : "Stopped"}</strong>
           <small>theo Docker Engine</small>
         </article>
+      </section>
+
+      <section className="section">
+        <DoctorReport report={doctor} loading={doctorLoading} onRun={runDoctor} />
       </section>
 
       <section className="two-columns section">
@@ -147,6 +258,48 @@ export default function ApplicationDetail() {
           <pre>{logs}</pre>
         </article>
       </section>
+
+      <section className="section">
+        <ReleaseTimeline revisions={revisions} busy={busy} onRollback={setRollbackTarget} />
+      </section>
+
+      <RollbackDialog
+        revision={rollbackTarget}
+        busy={busy}
+        onCancel={() => setRollbackTarget(null)}
+        onConfirm={confirmRollback}
+      />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <p className="eyebrow">XÁC NHẬN XÓA</p>
+            <h2>Xóa "{application.name}"?</h2>
+            <p>
+              Thao tác này sẽ xóa toàn bộ metadata và file compose của application.
+              Các Docker volume sẽ <strong>không</strong> bị xóa tự động.
+              Hành động này không thể hoàn tác.
+            </p>
+            <div className="actions modal-actions">
+              <button
+                className="button secondary"
+                disabled={deleting}
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Hủy
+              </button>
+              <button
+                className="button danger"
+                disabled={deleting}
+                onClick={handleDelete}
+              >
+                {deleting ? "Đang xóa..." : "Xác nhận xóa"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

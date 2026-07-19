@@ -2,6 +2,7 @@ import { Link, Route, Routes } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import NewApplication from "./pages/NewApplication";
 import ApplicationDetail from "./pages/ApplicationDetail";
+import EditApplication from "./pages/EditApplication";
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/applications/new" element={<NewApplication />} />
           <Route path="/applications/:id" element={<ApplicationDetail />} />
+          <Route path="/applications/:id/edit" element={<EditApplication />} />
         </Routes>
       </main>
     </div>

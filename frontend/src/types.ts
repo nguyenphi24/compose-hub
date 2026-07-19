@@ -36,3 +36,33 @@ export type ContainerStatus = {
   status: string;
   image: string;
 };
+
+export type DoctorSeverity = "critical" | "warning" | "info";
+
+export type DoctorIssue = {
+  code: string;
+  severity: DoctorSeverity;
+  title: string;
+  detail: string;
+  service?: string | null;
+  recommendation?: string | null;
+};
+
+export type DoctorReport = {
+  can_deploy: boolean;
+  critical_count: number;
+  warning_count: number;
+  info_count: number;
+  issues: DoctorIssue[];
+};
+
+export type ReleaseRevision = {
+  id: number;
+  action: string;
+  status: string;
+  target_revision_id: number | null;
+  output: string;
+  created_at: string;
+  completed_at: string | null;
+  doctor_report: DoctorReport | null;
+};
