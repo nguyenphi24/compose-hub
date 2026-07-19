@@ -70,6 +70,11 @@ if [ -L "${INSTALL_HOME}/current" ]; then
     say "Stopping the currently installed version..."
     docker compose --project-directory "${INSTALL_HOME}/current" down --remove-orphans
   fi
+  LEGACY_DATA_DIR="${INSTALL_HOME}/current/data"
+  if [ -d "$LEGACY_DATA_DIR" ] && [ ! -f "${DATA_DIR}/composehub.db" ]; then
+    say "Migrating data from the legacy installation layout..."
+    cp -R "${LEGACY_DATA_DIR}/." "$DATA_DIR/"
+  fi
   rm "${INSTALL_HOME}/current"
 fi
 ln -s "$RELEASE_DIR" "${INSTALL_HOME}/current"
