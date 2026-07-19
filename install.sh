@@ -67,6 +67,13 @@ if [ -e "${INSTALL_HOME}/current" ] && [ ! -L "${INSTALL_HOME}/current" ]; then
 fi
 if [ -L "${INSTALL_HOME}/current" ]; then
   if [ -f "${INSTALL_HOME}/current/docker-compose.yml" ]; then
+    if [ ! -f "${DATA_DIR}/composehub.db" ]; then
+      LEGACY_CONTAINER=$(docker compose --project-directory "${INSTALL_HOME}/current" ps -q backend 2>/dev/null || true)
+      if [ -n "$LEGACY_CONTAINER" ] && docker exec "$LEGACY_CONTAINER" test -d /data; then
+        say "Migrating data from the legacy backend container..."
+        docker cp "${LEGACY_CONTAINER}:/data/." "$DATA_DIR/"
+      fi
+    fi
     say "Stopping the currently installed version..."
     docker compose --project-directory "${INSTALL_HOME}/current" down --remove-orphans
   fi
