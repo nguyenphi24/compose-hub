@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 DATA_DIR = Path(
-    os.environ.get("COMPOSEHUB_DATA_DIR", Path(__file__).resolve().parents[2] / "data")
+    os.environ.get("COMPOSEHUB_DATA_DIR", Path(__file__).resolve().parents[1] / "data")
 )
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
